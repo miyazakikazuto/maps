@@ -16,10 +16,10 @@ dan menampilkan peta OpenStreetMap yang **tetap bisa dipakai offline**.
 - **Offline total**: GPS chip jalan tanpa sinyal; tile OSM di-cache via Service Worker
   (`sw.js`). Tombol **⬇ Download Area** untuk pre-cache peta sebelum berangkat.
 - **🧭 Live-follow**: peta otomatis ngikutin posisimu saat rekam (bisa di-off-kan).
-- **📂 Muat Trail**: import file GeoJSON jalur rencana (garis biru putus-putus)
-  untuk dibandingkan dengan posisi real-time (garis hijau).
-- **📊 Readout**: jumlah titik, jarak, gain elevasi (dari data GPS), akurasi, lat/lng.
-- **⤓ Export GeoJSON**: simpan jalur sebagai `track-<timestamp>.geojson`.
+- **📂 Muat Trail**: import file **GeoJSON atau GPX** jalur rencana (garis biru putus-putus)
+  untuk dibandingkan dengan posisi real-time (garis hijau). Format otomatis terdeteksi.
+- **⤓ Export GeoJSON / ⤓ Export GPX**: simpan jalur hasil rekam ke `track-<timestamp>.geojson`
+  atau `.gpx` (bisa dibuka di Garmin/OsmAnd/Gaia).
 - **PWA**: bisa di-pasang ke layar utama HP.
 
 ## Struktur
@@ -27,7 +27,7 @@ dan menampilkan peta OpenStreetMap yang **tetap bisa dipakai offline**.
 |---|---|
 | `index.html` | UI + peta |
 | `app.js` | logika GPS, rekam, live-follow, muat/export trail, download area |
-| `geo.js` | helper murni: tile math, GeoJSON (build/parse), haversine, elevationGain (teruji di `test/`) |
+| `geo.js` | helper murni: tile math, GeoJSON (build/parse), **GPX (build/parse)**, haversine, elevationGain (teruji di `test/`) |
 | `sw.js` | Service Worker cache app shell + tile OSM |
 | `styles.css` | tampilan |
 | `manifest.webmanifest` | metadata PWA |

@@ -4,7 +4,9 @@ import {
   lat2tile,
   tileRangeForBounds,
   buildGeoJSON,
+  buildGPX,
   parseGeoJSON,
+  parseTrack,
   elevationGain,
   distanceMeters,
 } from "./geo.js";
@@ -84,8 +86,7 @@ function updateReadout() {
       ? (totalDist / 1000).toFixed(2) + " km"
       : Math.round(totalDist) + " m";
   const gain = elevationGain(track.map((p) => ({ alt: p.alt })));
-  el("gain").textContent =
-    gain > 0 ? "↑ " + Math.round(gain) + " m" : "0 m";
+  el("gain").textContent = gain > 0 ? "↑ " + Math.round(gain) + " m" : "0 m";
   const last = track[track.length - 1];
   if (last) {
     el("acc").textContent = last.acc ? "±" + Math.round(last.acc) + " m" : "–";
@@ -169,23 +170,24 @@ function toggleFollow() {
   el("btnFollow").textContent = followMode ? "🧭 Ikuti: ON" : "🧭 Ikuti: OFF";
 }
 
-// ---- Muat trail dari file GeoJSON (jalur rencana) ----
+// ---- Muat trail dari file GeoJSON / GPX (jalur rencana) ----
 function loadTrail(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const gj = JSON.parse(reader.result);
-      const pts = parseGeoJSON(gj);
+      const pts = parseTrack(reader.result, file.name);
       if (!pts.length) {
-        alert("Tidak ada LineString di file GeoJSON ini.");
+        alert("Tidak ada titik track di file ini (GeoJSON/GPX).");
         return;
       }
       trailLine.setLatLngs(pts.map((p) => [p.lat, p.lng]));
       map.fitBounds(trailLine.getBounds());
-      el("statusText").textContent = "Trail dimuat: " + pts.length + " titik (biru = rencana)";
+      el("statusText").textContent =
+        "Trail dimuat (" + (/\.gpx$/i.test(file.name) ? "GPX" : "GeoJSON") +
+        "): " + pts.length + " titik (biru = rencana)";
     } catch (e) {
-      alert("Gagal parse GeoJSON: " + e.message);
+      alert("Gagal parse file: " + e.message);
     }
   };
   reader.readAsText(file);
@@ -207,6 +209,24 @@ function exportGeoJSON() {
     "track-" +
     new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") +
     ".geojson";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---- Export GPX ----
+function exportGPX() {
+  if (!track.length) {
+    alert("Belum ada titik untuk diekspor.");
+    return;
+  }
+  const gpx = buildGPX(track);
+  const blob = new Blob([gpx], { type: "application/gpx+xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download =
+    "track-" +
+    new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") +
+    ".gpx";
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -285,6 +305,7 @@ el("btnFollow").addEventListener("click", toggleFollow);
 el("btnLoad").addEventListener("click", () => el("fileInput").click());
 el("fileInput").addEventListener("change", (e) => loadTrail(e.target.files[0]));
 el("btnExport").addEventListener("click", exportGeoJSON);
+el("btnExportGpx").addEventListener("click", exportGPX);
 el("btnDownload").addEventListener("click", downloadArea);
 el("btnClear").addEventListener("click", clearTrack);
 

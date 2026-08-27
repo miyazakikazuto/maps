@@ -5,7 +5,10 @@ import {
   lat2tile,
   tileRangeForBounds,
   buildGeoJSON,
+  buildGPX,
   parseGeoJSON,
+  parseGPX,
+  parseTrack,
   elevationGain,
   distanceMeters,
 } from "../geo.js";
@@ -62,6 +65,20 @@ assert.strictEqual(
   25
 );
 assert.strictEqual(elevationGain([{ alt: null }, { alt: 10 }]), 0);
+
+// GPX build -> parse round-trip
+const gpx = buildGPX(pts, "Gunung");
+assert.ok(gpx.includes("<gpx"));
+assert.ok(gpx.includes('lat="-6.2"'));
+const gpxBack = parseGPX(gpx);
+assert.strictEqual(gpxBack.length, 2);
+assert.strictEqual(gpxBack[0].lat, -6.2);
+assert.strictEqual(gpxBack[1].alt, 1010);
+
+// parseTrack auto-detects GPX vs GeoJSON by content + filename
+assert.strictEqual(parseTrack(gpx, "x.gpx").length, 2);
+assert.strictEqual(parseTrack(JSON.stringify(gj), "x.geojson").length, 2);
+assert.strictEqual(parseTrack(gpx).length, 2); // content-only detection
 
 // distance: two close points -> small positive meters
 const d = distanceMeters({ lat: -6.2, lng: 106.8 }, { lat: -6.21, lng: 106.81 });

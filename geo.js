@@ -77,6 +77,62 @@ export function elevationGain(points) {
   return gain;
 }
 
+// ---- GPX support (XML, standar GPS Garmin/OsmAnd/dll) ----
+function escapeXml(s) {
+  return String(s).replace(/[<>&'"]/g, (c) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" }[c])
+  );
+}
+
+export function buildGPX(points, name = "Hiking Track") {
+  const seg = points
+    .map((p) => {
+      const ele = p.alt != null ? `      <ele>${p.alt}</ele>\n` : "";
+      const time = p.t ? `      <time>${new Date(p.t).toISOString()}</time>\n` : "";
+      return `    <trkpt lat="${p.lat}" lon="${p.lng}">\n${ele}${time}    </trkpt>`;
+    })
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailGPS" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${escapeXml(name)}</name>
+    <trkseg>
+${seg}
+    </trkseg>
+  </trk>
+</gpx>`;
+}
+
+export function parseGPX(xml) {
+  const re =
+    /<(?:trkpt|rtept|wpt)\s+lat="(-?\d+(?:\.\d+)?)"\s+lon="(-?\d+(?:\.\d+)?)"[^>]*>([\s\S]*?)<\/(?:trkpt|rtept|wpt)>/g;
+  const pts = [];
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    const lat = parseFloat(m[1]);
+    const lng = parseFloat(m[2]);
+    const inner = m[3];
+    const eleM = /<ele>([\s\S]*?)<\/ele>/.exec(inner);
+    const timeM = /<time>([\s\S]*?)<\/time>/.exec(inner);
+    pts.push({
+      lat,
+      lng,
+      alt: eleM ? parseFloat(eleM[1]) : null,
+      t: timeM ? Date.parse(timeM[1]) : null,
+    });
+  }
+  return pts;
+}
+
+// Auto-detect format from content + filename: GPX or GeoJSON.
+export function parseTrack(content, filename = "") {
+  const trimmed = (content || "").trim();
+  if (/<gpx[\s>]/i.test(trimmed) || /\.gpx$/i.test(filename)) {
+    return parseGPX(trimmed);
+  }
+  return parseGeoJSON(JSON.parse(trimmed));
+}
+
 export function distanceMeters(a, b) {
   const R = 6371000;
   const toRad = (d) => (d * Math.PI) / 180;
