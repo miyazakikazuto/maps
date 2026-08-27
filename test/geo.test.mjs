@@ -72,9 +72,10 @@ const gpx = buildGPX(pts, "Gunung");
 assert.ok(gpx.includes("<gpx"));
 assert.ok(gpx.includes('lat="-6.2"'));
 const gpxBack = parseGPX(gpx);
-assert.strictEqual(gpxBack.track.length, 2);
-assert.strictEqual(gpxBack.track[0].lat, -6.2);
-assert.strictEqual(gpxBack.track[1].alt, 1010);
+assert.strictEqual(gpxBack.segments.length, 1);
+assert.strictEqual(gpxBack.segments[0].length, 2);
+assert.strictEqual(gpxBack.segments[0][0].lat, -6.2);
+assert.strictEqual(gpxBack.segments[0][1].alt, 1010);
 
 // GPX dengan namespace prefix + single quote + whitespace (Garmin/OsmAnd style)
 const gpxNs = `<?xml version="1.0"?>
@@ -86,11 +87,12 @@ const gpxNs = `<?xml version="1.0"?>
     <wpt lat='-6.21' lon='106.81'><ele>1010</ele></wpt>
   </trkseg></trk>
 </gpx>`;
-// wpt tanpa <name> diabaikan (bukan track, bukan waypoint) -> track cuma 1
+// wpt tanpa <name> diabaikan (bukan track, bukan waypoint) -> segmen cuma 1 titik
 const nsBack = parseGPX(gpxNs);
-assert.strictEqual(nsBack.track.length, 1);
-assert.strictEqual(nsBack.track[0].lat, -6.2);
-assert.strictEqual(nsBack.track[0].alt, 1000);
+assert.strictEqual(nsBack.segments.length, 1);
+assert.strictEqual(nsBack.segments[0].length, 1);
+assert.strictEqual(nsBack.segments[0][0].lat, -6.2);
+assert.strictEqual(nsBack.segments[0][0].alt, 1000);
 assert.strictEqual(nsBack.waypoints.length, 0);
 
 // parseTrack auto-detects GPX vs GeoJSON by content + filename

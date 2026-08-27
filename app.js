@@ -205,12 +205,16 @@ function loadTrailSaved() {
     const raw = localStorage.getItem(TRAIL_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    const pts = Array.isArray(data) ? data : data.track; // kompatibel lama
-    if (!pts || !pts.length) return false;
-    trailLine.setLatLngs(pts);
+    const stored = Array.isArray(data) ? data : data.track; // kompatibel lama
+    if (!stored || !stored.length) return false;
+    // trailLine.getLatLngs() nested = [[ [lat,lng],... ], ...] (multi-segmen)
+    const nested = Array.isArray(stored[0]) && Array.isArray(stored[0][0]);
+    const segments = nested ? stored : [stored];
+    trailLine.setLatLngs(segments);
+    const flatPts = segments.flat().map((p) => ({ lat: p[0], lng: p[1] }));
     const savedWps = Array.isArray(data) ? [] : data.waypoints || [];
     // jika GPX asli tak punya wpt, regenerate auto-waypoint dari track
-    const wps = savedWps.length ? savedWps : autoWaypoints(pts.map((p) => ({ lat: p[0], lng: p[1] })));
+    const wps = savedWps.length ? savedWps : autoWaypoints(flatPts);
     drawWaypoints(wps);
     return true;
   } catch (e) {}
@@ -410,12 +414,15 @@ function loadTrail(file) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const { track: pts, waypoints } = parseTrack(reader.result, file.name);
+      const { segments, track: pts, waypoints } = parseTrack(reader.result, file.name);
       if (!pts.length) {
         alert("Tidak ada titik track di file ini (GeoJSON/GPX).");
         return;
       }
-      trailLine.setLatLngs(simplifyTrack(pts, 8).map((p) => [p.lat, p.lng]));
+      // nested segments -> multi-polyline (tanpa garis lurus antar-segmen)
+      trailLine.setLatLngs(
+        segments.map((seg) => simplifyTrack(seg, 8).map((p) => [p.lat, p.lng]))
+      );
       // waypoint: dari file (wpt/trkpt name) + auto (start/puncak/finish)
       const wps = waypoints.concat(autoWaypoints(pts));
       drawWaypoints(wps);
@@ -423,7 +430,7 @@ function loadTrail(file) {
       saveTrail();
       el("statusText").textContent =
         "Trail dimuat (" + (/\.gpx$/i.test(file.name) ? "GPX" : "GeoJSON") +
-        "): " + pts.length + " titik" +
+        "): " + pts.length + " titik, " + segments.length + " segmen" +
         (waypoints.length ? ", " + waypoints.length + " pos" : "") +
         " (biru = rencana)";
     } catch (e) {

@@ -103,37 +103,52 @@ ${seg}
 </gpx>`;
 }
 
-// Parse GPX: pisahkan track (trkpt/rtept) dari waypoint (wpt) yang punya nama.
-// Mengembalikan { track: [{lat,lng,alt,t}], waypoints: [{lat,lng,name}] }
+// Parse GPX. Mengembalikan:
+//  { segments: [[{lat,lng,alt,t}, ...], ...],  // tiap <trkseg> = 1 segmen (hindari garis lurus antar-segmen)
+//    waypoints: [{lat,lng,name}] }             // <wpt>/<trkpt>/<rtept> yang punya <name>
 export function parseGPX(xml) {
-  const re =
-    /<(?:[\w-]+:)?(?:wpt|trkpt|rtept)\b[^>]*?\slat\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*?\slon\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/(?:[\w-]+:)?(?:wpt|trkpt|rtept)>/gi;
-  const track = [];
   const waypoints = [];
-  let m;
-  while ((m = re.exec(xml)) !== null) {
-    const lat = parseFloat(m[1]);
-    const lng = parseFloat(m[2]);
-    const inner = m[3];
-    const eleM = /<ele>\s*([\s\S]*?)\s*<\/ele>/i.exec(inner);
-    const timeM = /<time>\s*([\s\S]*?)\s*<\/time>/i.exec(inner);
+  const segments = [];
+
+  // Waypoint: wpt/trkpt/rtept yang punya <name>
+  const wpRe =
+    /<(?:[\w-]+:)?(?:wpt|trkpt|rtept)\b[^>]*?\slat\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*?\slon\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/(?:[\w-]+:)?(?:wpt|trkpt|rtept)>/gi;
+  let wm;
+  while ((wm = wpRe.exec(xml)) !== null) {
+    const inner = wm[3];
     const nameM = /<name>\s*([\s\S]*?)\s*<\/name>/i.exec(inner);
-    const isWpt = /wpt/i.test(m[0]);
     if (nameM) {
-      // apapun yang punya <name> -> waypoint (pos / puncak), jangan di track
-      waypoints.push({ lat, lng, name: nameM[1].trim() });
-    } else if (!isWpt) {
-      // trkpt/rtept tanpa nama -> track biasa
-      track.push({
-        lat,
-        lng,
+      waypoints.push({
+        lat: parseFloat(wm[1]),
+        lng: parseFloat(wm[2]),
+        name: nameM[1].trim(),
+      });
+    }
+  }
+
+  // Tiap <trkseg> (atau <rte>) -> 1 segmen track
+  const segRe = /<(trkseg|rte)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let sm;
+  while ((sm = segRe.exec(xml)) !== null) {
+    const body = sm[2];
+    const ptRe =
+      /<(?:[\w-]+:)?(?:trkpt|rtept)\b[^>]*?\slat\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*?\slon\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/(?:[\w-]+:)?(?:trkpt|rtept)>/gi;
+    const seg = [];
+    let pm;
+    while ((pm = ptRe.exec(body)) !== null) {
+      const inner = pm[3];
+      const eleM = /<ele>\s*([\s\S]*?)\s*<\/ele>/i.exec(inner);
+      const timeM = /<time>\s*([\s\S]*?)\s*<\/time>/i.exec(inner);
+      seg.push({
+        lat: parseFloat(pm[1]),
+        lng: parseFloat(pm[2]),
         alt: eleM ? parseFloat(eleM[1]) : null,
         t: timeM ? Date.parse(timeM[1]) : null,
       });
     }
-    // wpt tanpa nama: abaikan (biasanya cuma tichel)
+    if (seg.length) segments.push(seg);
   }
-  return { track, waypoints };
+  return { segments, waypoints };
 }
 
 // Auto-detect format from content + filename: GPX or GeoJSON.
@@ -143,15 +158,16 @@ export function parseTrack(content, filename = "") {
   const looksGpx =
     /<gpx|<trkpt|<rtept|<wpt/i.test(trimmed) || /\.gpx$/i.test(filename);
   if (looksGpx) {
-    const { track, waypoints } = parseGPX(trimmed);
-    return { track, waypoints };
+    const { segments, waypoints } = parseGPX(trimmed);
+    return { segments, track: segments.flat(), waypoints };
   }
   // try GeoJSON first, fall back to GPX if it wasn't actually JSON
   try {
-    return { track: parseGeoJSON(JSON.parse(trimmed)), waypoints: [] };
+    const gj = parseGeoJSON(JSON.parse(trimmed));
+    return { segments: [gj], track: gj, waypoints: [] };
   } catch (e) {
-    const { track, waypoints } = parseGPX(trimmed);
-    return { track, waypoints };
+    const { segments, waypoints } = parseGPX(trimmed);
+    return { segments, track: segments.flat(), waypoints };
   }
 }
 
