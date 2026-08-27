@@ -65,6 +65,19 @@ function showMyLocation(lat, lng, acc) {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register("./sw.js")
+    .then((reg) => {
+      // Kalau ada SW versi baru ter-install, reload otomatis sekali
+      // biar user langsung dapet kode terbaru (hindari cache lama).
+      reg.addEventListener("updatefound", () => {
+        const installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener("statechange", () => {
+          if (installing.state === "installed" && navigator.serviceWorker.controller) {
+            location.reload();
+          }
+        });
+      });
+    })
     .catch((e) => console.warn("SW gagal:", e));
 }
 
