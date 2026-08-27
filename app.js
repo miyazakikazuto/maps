@@ -19,6 +19,9 @@ const map = L.map("map", {
   zoomControl: true,
   rotate: true,
   rotateControl: false,
+  touchRotate: true, // aktifkan rotasi dua jari di layar sentuh
+  dragRotate: true,
+  shiftKeyRotate: true,
 }).setView([-6.9, 107.6], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
