@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <title>Trail GPS — Pelacak Jalur Pendakian Offline</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="map"></div>
+      <div id="panel">
+        <div id="status">
+          <span id="onlineDot" class="dot offline" title="Status jaringan"></span>
+          <span id="statusText">Menyiapkan…</span>
+        </div>
+        <div class="btns">
+          <button id="btnCenter">📍 Lokasi Saya</button>
+          <button id="btnStart">▶ Mulai Rekam</button>
+          <button id="btnStop" disabled>■ Stop</button>
+          <button id="btnDownload">⬇ Download Area</button>
+          <button id="btnExport">⤓ Export GeoJSON</button>
+          <button id="btnClear">🗑 Bersihkan</button>
+        </div>
+        <div id="readout">
+          <div>Titik: <b id="ptCount">0</b></div>
+          <div>Jarak: <b id="dist">0 m</b></div>
+          <div>Akurasi: <b id="acc">–</b></div>
+          <div>Lat/Lng: <b id="ll">–</b></div>
+        </div>
+        <div id="progress" hidden></div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

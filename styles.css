@@ -1,0 +1,42 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+#app { display: flex; flex-direction: column; height: 100%; }
+#map { flex: 1 1 auto; min-height: 0; }
+#panel {
+  flex: 0 0 auto;
+  background: #0b0f14;
+  color: #e6edf3;
+  padding: 10px 12px;
+  border-top: 1px solid #1f2937;
+  font-size: 14px;
+}
+#status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.online { background: #22c55e; }
+.dot.offline { background: #ef4444; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+button {
+  background: #1f2937;
+  color: #e6edf3;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button:not(:disabled):active { background: #374151; }
+#btnStart:not(:disabled) { background: #166534; border-color: #22c55e; }
+#btnStop:not(:disabled) { background: #7f1d1d; border-color: #ef4444; }
+#readout { display: flex; flex-wrap: wrap; gap: 4px 16px; color: #9ca3af; }
+#readout b { color: #e6edf3; }
+#progress {
+  margin-top: 8px;
+  color: #60a5fa;
+  font-size: 13px;
+}
+@media (min-width: 700px) {
+  #app { flex-direction: row; }
+  #map { flex: 1 1 auto; }
+  #panel { flex: 0 0 280px; height: 100%; border-top: none; border-left: 1px solid #1f2937; overflow-y: auto; }
+}

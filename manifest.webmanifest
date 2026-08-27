@@ -1,0 +1,10 @@
+{
+  "name": "Trail GPS — Pelacak Jalur Pendakian",
+  "short_name": "TrailGPS",
+  "description": "Pelacak jalur pendakian offline berbasis GPS + peta OpenStreetMap",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14"
+}
