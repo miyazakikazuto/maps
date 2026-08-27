@@ -21,6 +21,16 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap",
 }).addTo(map);
 
+// Fix: di flexbox peta kadang ke-init pas kontainer masih 0 tinggi,
+// menyebabkan pan/drag rusak. Recalc ukuran setelah layout stabil.
+window.addEventListener("load", () => map.invalidateSize());
+setTimeout(() => map.invalidateSize(), 300);
+if (window.ResizeObserver) {
+  new ResizeObserver(() => map.invalidateSize()).observe(
+    document.getElementById("map")
+  );
+}
+
 let track = []; // { lat, lng, alt, acc, t }
 let totalDist = 0;
 let watchId = null;
