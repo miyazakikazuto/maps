@@ -180,6 +180,19 @@ function pointToSegmentMeters(p, a, b) {
   return distanceMeters(p, proj);
 }
 
+// Decimate track: buang titik yang terlalu dekat (< minMeters) ke titik terakhir
+// yang dipertahankan. Hasil garis lebih bersih (tidak "spaghetti").
+export function simplifyTrack(points, minMeters = 8) {
+  if (!points || points.length <= 2) return points.slice();
+  const out = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const last = out[out.length - 1];
+    if (distanceMeters(last, points[i]) >= minMeters) out.push(points[i]);
+  }
+  const final = points[points.length - 1];
+  if (distanceMeters(out[out.length - 1], final) > 0.1) out.push(final);
+  return out;
+}
 // Auto-generate waypoints dari track jika GPX tidak punya <wpt>:
 // - titik pertama (Start), titik tertinggi (Puncak), titik terakhir (Finish)
 export function autoWaypoints(track) {

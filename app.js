@@ -11,6 +11,7 @@ import {
   distanceMeters,
   offRouteMeters,
   autoWaypoints,
+  simplifyTrack,
 } from "./geo.js";
 
 const STORE_KEY = "trail-track-v1";
@@ -414,7 +415,7 @@ function loadTrail(file) {
         alert("Tidak ada titik track di file ini (GeoJSON/GPX).");
         return;
       }
-      trailLine.setLatLngs(pts.map((p) => [p.lat, p.lng]));
+      trailLine.setLatLngs(simplifyTrack(pts, 8).map((p) => [p.lat, p.lng]));
       // waypoint: dari file (wpt/trkpt name) + auto (start/puncak/finish)
       const wps = waypoints.concat(autoWaypoints(pts));
       drawWaypoints(wps);
@@ -573,6 +574,10 @@ el("btnExport").addEventListener("click", exportGeoJSON);
 el("btnExportGpx").addEventListener("click", exportGPX);
 el("btnDownload").addEventListener("click", downloadArea);
 el("btnClear").addEventListener("click", clearTrack);
+el("btnHideTrack").addEventListener("click", () => {
+  if (map.hasLayer(trackLine)) map.removeLayer(trackLine);
+  else trackLine.addTo(map);
+});
 el("btnResetRot").addEventListener("click", () => {
   if (map.getBearing) map.setBearing(0); // leaflet-rotate API
 });
