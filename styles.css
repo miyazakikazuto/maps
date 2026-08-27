@@ -35,6 +35,10 @@ button:not(:disabled):active { background: #374151; }
   color: #60a5fa;
   font-size: 13px;
 }
+#legend { margin-top: 8px; color: #9ca3af; font-size: 12px; }
+#legend .lg { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 4px; }
+#legend .lg.green { background: #22c55e; }
+#legend .lg.blue { background: #3b82f6; }
 @media (min-width: 700px) {
   #app { flex-direction: row; }
   #map { flex: 1 1 auto; }

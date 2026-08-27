@@ -4,6 +4,8 @@ import {
   lat2tile,
   tileRangeForBounds,
   buildGeoJSON,
+  parseGeoJSON,
+  elevationGain,
   distanceMeters,
 } from "./geo.js";
 
@@ -11,10 +13,7 @@ const STORE_KEY = "trail-track-v1";
 const MIN_MOVE_M = 2; // abaikan titik yg terlalu dekat (kurangi noise)
 const MAX_TILES = 4000; // batas download area (etika OSM)
 
-const map = L.map("map", { zoomControl: true }).setView(
-  [-6.9, 107.6],
-  12
-);
+const map = L.map("map", { zoomControl: true }).setView([-6.9, 107.6], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   attribution: "© OpenStreetMap",
@@ -23,7 +22,13 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 let track = []; // { lat, lng, alt, acc, t }
 let totalDist = 0;
 let watchId = null;
+let followMode = true; // peta otomatis ngikutin posisi saat rekam
 let trackLine = L.polyline([], { color: "#22c55e", weight: 4 }).addTo(map);
+let trailLine = L.polyline([], {
+  color: "#3b82f6",
+  weight: 3,
+  dashArray: "6,6",
+}).addTo(map); // jalur rencana (dari file)
 let marker = null;
 const el = (id) => document.getElementById(id);
 
@@ -78,6 +83,9 @@ function updateReadout() {
     totalDist >= 1000
       ? (totalDist / 1000).toFixed(2) + " km"
       : Math.round(totalDist) + " m";
+  const gain = elevationGain(track.map((p) => ({ alt: p.alt })));
+  el("gain").textContent =
+    gain > 0 ? "↑ " + Math.round(gain) + " m" : "0 m";
   const last = track[track.length - 1];
   if (last) {
     el("acc").textContent = last.acc ? "±" + Math.round(last.acc) + " m" : "–";
@@ -89,7 +97,10 @@ function updateReadout() {
 function onPosition(pos) {
   const { latitude: lat, longitude: lng, altitude: alt, accuracy: acc } =
     pos.coords;
-  if (track.length && distanceMeters(track[track.length - 1], { lat, lng }) < MIN_MOVE_M) {
+  if (
+    track.length &&
+    distanceMeters(track[track.length - 1], { lat, lng }) < MIN_MOVE_M
+  ) {
     return; // terlalu dekat, skip
   }
   const point = { lat, lng, alt: alt ?? null, acc: acc ?? null, t: Date.now() };
@@ -106,6 +117,7 @@ function onPosition(pos) {
   } else {
     marker.setLatLng([lat, lng]);
   }
+  if (followMode) map.panTo([lat, lng]);
   saveTrack();
   updateReadout();
 }
@@ -141,10 +153,42 @@ function stopRecording() {
 function centerOnMe() {
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(
-    (p) => map.setView([p.coords.latitude, p.coords.longitude], Math.max(map.getZoom(), 15)),
+    (p) =>
+      map.setView(
+        [p.coords.latitude, p.coords.longitude],
+        Math.max(map.getZoom(), 15)
+      ),
     onPositionError,
     { enableHighAccuracy: true, timeout: 10000 }
   );
+}
+
+// ---- Live-follow toggle ----
+function toggleFollow() {
+  followMode = !followMode;
+  el("btnFollow").textContent = followMode ? "🧭 Ikuti: ON" : "🧭 Ikuti: OFF";
+}
+
+// ---- Muat trail dari file GeoJSON (jalur rencana) ----
+function loadTrail(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const gj = JSON.parse(reader.result);
+      const pts = parseGeoJSON(gj);
+      if (!pts.length) {
+        alert("Tidak ada LineString di file GeoJSON ini.");
+        return;
+      }
+      trailLine.setLatLngs(pts.map((p) => [p.lat, p.lng]));
+      map.fitBounds(trailLine.getBounds());
+      el("statusText").textContent = "Trail dimuat: " + pts.length + " titik (biru = rencana)";
+    } catch (e) {
+      alert("Gagal parse GeoJSON: " + e.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ---- Export GeoJSON ----
@@ -159,7 +203,10 @@ function exportGeoJSON() {
   });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "track-" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".geojson";
+  a.download =
+    "track-" +
+    new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") +
+    ".geojson";
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -180,10 +227,17 @@ async function downloadArea() {
     z1
   );
   let total = 0;
-  for (let z = z0; z <= z1; z++) r = range[z], (total += (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1));
+  for (let z = z0; z <= z1; z++) {
+    const r = range[z];
+    total += (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
+  }
   if (total > MAX_TILES) {
     alert(
-      "Area terlalu besar (" + total + " tile). Perkecil zoom / area dulu (maks " + MAX_TILES + ")."
+      "Area terlalu besar (" +
+        total +
+        " tile). Perkecil zoom / area dulu (maks " +
+        MAX_TILES +
+        ")."
     );
     return;
   }
@@ -195,8 +249,7 @@ async function downloadArea() {
       for (let y = r.yMin; y <= r.yMax; y++) {
         const url = `https://a.tile.openstreetmap.org/${z}/${x}/${y}.png`;
         try {
-          // no-cors => opaque response, tapi SW akan cache-nya
-          await fetch(url, { mode: "no-cors" });
+          await fetch(url, { mode: "no-cors" }); // SW akan cache-nya
         } catch (e) {}
         done++;
         if (done % 25 === 0) {
@@ -228,6 +281,9 @@ function clearTrack() {
 el("btnStart").addEventListener("click", startRecording);
 el("btnStop").addEventListener("click", stopRecording);
 el("btnCenter").addEventListener("click", centerOnMe);
+el("btnFollow").addEventListener("click", toggleFollow);
+el("btnLoad").addEventListener("click", () => el("fileInput").click());
+el("fileInput").addEventListener("change", (e) => loadTrail(e.target.files[0]));
 el("btnExport").addEventListener("click", exportGeoJSON);
 el("btnDownload").addEventListener("click", downloadArea);
 el("btnClear").addEventListener("click", clearTrack);

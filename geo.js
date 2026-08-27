@@ -1,5 +1,5 @@
 // geo.js — pure helper functions (no browser deps, testable in Node)
-// Slippy-map tile math + GeoJSON builder + haversine distance.
+// Slippy-map tile math + GeoJSON builder/parser + haversine distance.
 
 export function lon2tile(lon, zoom) {
   return Math.floor(((lon + 180) / 360) * Math.pow(2, zoom));
@@ -50,6 +50,31 @@ export function buildGeoJSON(points, name = "Hiking Track") {
       },
     ],
   };
+}
+
+// Parse a GeoJSON (FeatureCollection with LineString) back into point array.
+export function parseGeoJSON(gj) {
+  const feats = (gj && gj.features ? gj.features : []).filter(
+    (f) => f.geometry && f.geometry.type === "LineString"
+  );
+  const pts = [];
+  for (const f of feats) {
+    for (const c of f.geometry.coordinates) {
+      pts.push({ lng: c[0], lat: c[1], alt: c[2] ?? null, t: null });
+    }
+  }
+  return pts;
+}
+
+// Total positive elevation gain (meters) from a track with altitude.
+export function elevationGain(points) {
+  let gain = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1].alt;
+    const b = points[i].alt;
+    if (a != null && b != null && b > a) gain += b - a;
+  }
+  return gain;
 }
 
 export function distanceMeters(a, b) {
