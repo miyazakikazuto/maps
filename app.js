@@ -18,13 +18,14 @@ const MIN_MOVE_M = 2; // abaikan titik yg terlalu dekat (kurangi noise)
 const MAX_TILES = 4000; // batas download area (etika OSM)
 
 const map = L.map("map", {
-  zoomControl: true,
+  zoomControl: false, // kita taruh manual di bottomright biar tak tabrakan dgn ☰/kompas
   rotate: true,
   rotateControl: false,
   touchRotate: true, // aktifkan rotasi dua jari di layar sentuh
   dragRotate: true,
   shiftKeyRotate: true,
 }).setView([-6.92, 109.99], 12); // default: Kendal (jika kosong)
+L.control.zoom({ position: "bottomleft" }).addTo(map);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   attribution: "© OpenStreetMap",
