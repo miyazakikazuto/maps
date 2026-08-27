@@ -44,6 +44,10 @@ let track = []; // { lat, lng, alt, acc, t }
 let totalDist = 0;
 let watchId = null;
 let followMode = true; // peta otomatis ngikutin posisi saat rekam
+let recStart = 0; // timestamp mulai rekam (ms)
+let recAccum = 0; // detik terakumulasi (pause-aware)
+let recTimer = null; // interval update durasi
+let heading = 0; // arah hadap HP (derajat, 0 = utara)
 let trackLine = L.polyline([], { color: "#22c55e", weight: 4 }).addTo(map);
 let trailLine = L.polyline([], {
   color: "#3b82f6",
@@ -202,11 +206,32 @@ function updateReadout() {
       : Math.round(totalDist) + " m";
   const gain = elevationGain(track.map((p) => ({ alt: p.alt })));
   el("gain").textContent = gain > 0 ? "↑ " + Math.round(gain) + " m" : "0 m";
+  const durSec = recAccum + (recStart ? (Date.now() - recStart) / 1000 : 0);
+  el("dur").textContent = formatDur(durSec);
+  // pace hanya bermakna kalau sudah jalan > 50m
+  if (totalDist > 50 && durSec > 1) {
+    const paceMinKm = durSec / 60 / (totalDist / 1000);
+    el("pace").textContent = paceMinKm.toFixed(1) + " mnt/km";
+    const kmh = (totalDist / 1000) / (durSec / 3600);
+    el("speed").textContent = kmh.toFixed(1) + " km/j";
+  } else {
+    el("pace").textContent = "–";
+    el("speed").textContent = "–";
+  }
   const last = track[track.length - 1];
   if (last) {
     el("acc").textContent = last.acc ? "±" + Math.round(last.acc) + " m" : "–";
     el("ll").textContent = last.lat.toFixed(5) + ", " + last.lng.toFixed(5);
   }
+}
+
+function formatDur(sec) {
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
 // ---- GPS ----
@@ -287,6 +312,10 @@ function startRecording() {
     alert("Browser tidak mendukung Geolocation.");
     return;
   }
+  if (!recStart) recAccum = 0;
+  recStart = Date.now();
+  if (recTimer) clearInterval(recTimer);
+  recTimer = setInterval(updateReadout, 1000);
   watchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
     enableHighAccuracy: true,
     maximumAge: 0,
@@ -297,6 +326,14 @@ function startRecording() {
   el("statusText").textContent = "Merekam…";
 }
 function stopRecording() {
+  if (recTimer) {
+    clearInterval(recTimer);
+    recTimer = null;
+  }
+  if (recStart) {
+    recAccum += (Date.now() - recStart) / 1000;
+    recStart = 0;
+  }
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
@@ -304,6 +341,7 @@ function stopRecording() {
   el("btnStart").disabled = false;
   el("btnStop").disabled = true;
   saveTrack();
+  updateReadout();
   el("statusText").textContent = "Rekam dihentikan";
 }
 
@@ -446,6 +484,9 @@ function clearTrack() {
   stopRecording();
   track = [];
   totalDist = 0;
+  recStart = 0;
+  recAccum = 0;
+  if (recTimer) { clearInterval(recTimer); recTimer = null; }
   trackLine.setLatLngs([]);
   if (marker) {
     map.removeLayer(marker);
@@ -473,6 +514,29 @@ el("btnResetRot").addEventListener("click", () => {
   if (map.getBearing) map.setBearing(0); // leaflet-rotate API
 });
 el("btnTrail").addEventListener("click", focusTrail);
+
+// ---- Kompas: arah hadap HP (deviceorientation) ----
+function onOrientation(e) {
+  // iOS 13+ pakai e.webkitCompassHeading; lainnya e.alpha (perlu dikurangi bearing peta)
+  const h = e.webkitCompassHeading != null ? e.webkitCompassHeading : (360 - (e.alpha || 0));
+  heading = h;
+  const arrow = el("compassArrow");
+  if (arrow) arrow.style.transform = `rotate(${-h}deg)`;
+  el("compassDeg").textContent = Math.round(h) + "°";
+}
+function enableCompass() {
+  if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
+    // iOS 13+ minta izin dulu
+    DeviceOrientationEvent.requestPermission()
+      .then((state) => {
+        if (state === "granted") window.addEventListener("deviceorientation", onOrientation);
+      })
+      .catch(() => {});
+  } else {
+    window.addEventListener("deviceorientation", onOrientation);
+  }
+}
+enableCompass();
 
 updateOnline();
 loadTrack();
