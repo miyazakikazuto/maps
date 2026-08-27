@@ -44,6 +44,39 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
 }
 #compassDeg { color: #e6edf3; font-size: 12px; }
 
+/* Hamburger mengambang kiri atas peta */
+#btnMenu {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 800;
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+  border-radius: 8px;
+  background: rgba(11, 15, 20, 0.75);
+  border: 1px solid #374151;
+  color: #e6edf3;
+  cursor: pointer;
+}
+
+/* Topbar mini selalu kelihatan (status + jarak kilat) */
+#topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0b0f14;
+  color: #e6edf3;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-top: 1px solid #1f2937;
+}
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.online { background: #22c55e; }
+.dot.offline { background: #ef4444; }
+
+/* Panel slide-up, hidden by default */
 #panel {
   flex: 0 0 auto;
   background: #0b0f14;
@@ -51,11 +84,13 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
   padding: 8px 10px;
   border-top: 1px solid #1f2937;
   font-size: 13px;
+  max-height: 70vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.22s ease;
+  position: relative;
 }
-#status { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.dot.online { background: #22c55e; }
-.dot.offline { background: #ef4444; }
+#panel.open { transform: translateY(0); }
 
 /* Tombol jadi ikon kompak, wrap rapi */
 .btns { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }

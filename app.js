@@ -323,6 +323,7 @@ function startRecording() {
   });
   el("btnStart").disabled = true;
   el("btnStop").disabled = false;
+  el("panel").classList.add("open"); // auto-buka biar durasi kelihatan
   el("statusText").textContent = "Merekam…";
 }
 function stopRecording() {
@@ -514,6 +515,9 @@ el("btnResetRot").addEventListener("click", () => {
   if (map.getBearing) map.setBearing(0); // leaflet-rotate API
 });
 el("btnTrail").addEventListener("click", focusTrail);
+el("btnMenu").addEventListener("click", () => {
+  el("panel").classList.toggle("open");
+});
 
 // ---- Kompas: arah hadap HP (deviceorientation) ----
 function onOrientation(e) {

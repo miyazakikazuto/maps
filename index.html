@@ -15,17 +15,17 @@
     <div id="app">
       <div id="offroute" hidden></div>
       <div id="map">
+        <button id="btnMenu" title="Menu">☰</button>
         <div id="compass" title="Arah hadap">
           <div id="compassArrow">↑N</div>
           <div id="compassDeg">–</div>
         </div>
       </div>
-      <div id="panel">
-        <div id="status">
-          <span id="onlineDot" class="dot offline" title="Status jaringan"></span>
-          <span id="statusText">Menyiapkan…</span>
-        </div>
-        <div class="btns">
+      <div id="topbar">
+        <span id="onlineDot" class="dot offline" title="Status jaringan"></span>
+        <span id="statusText">Menyiapkan…</span>
+      </div>
+      <div id="panel">        <div class="btns">
           <button id="btnCenter" title="Lokasi saya">📍</button>
           <button id="btnStart" class="primary" title="Mulai rekam">▶</button>
           <button id="btnStop" disabled title="Stop">■</button>
