@@ -23,7 +23,7 @@ const map = L.map("map", {
   touchRotate: true, // aktifkan rotasi dua jari di layar sentuh
   dragRotate: true,
   shiftKeyRotate: true,
-}).setView([-6.9, 107.6], 12);
+}).setView([-6.92, 109.99], 12); // default: Kendal (jika kosong)
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   attribution: "© OpenStreetMap",
