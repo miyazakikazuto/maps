@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./geo.js",
   "./styles.css",
   "./manifest.webmanifest",
+  "./vendor/leaflet-rotate.min.js",
 ];
 
 self.addEventListener("install", (event) => {
