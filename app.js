@@ -15,7 +15,11 @@ const STORE_KEY = "trail-track-v1";
 const MIN_MOVE_M = 2; // abaikan titik yg terlalu dekat (kurangi noise)
 const MAX_TILES = 4000; // batas download area (etika OSM)
 
-const map = L.map("map", { zoomControl: true }).setView([-6.9, 107.6], 12);
+const map = L.map("map", {
+  zoomControl: true,
+  rotate: true,
+  rotateControl: false,
+}).setView([-6.9, 107.6], 12);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   attribution: "© OpenStreetMap",
@@ -361,6 +365,9 @@ el("btnExport").addEventListener("click", exportGeoJSON);
 el("btnExportGpx").addEventListener("click", exportGPX);
 el("btnDownload").addEventListener("click", downloadArea);
 el("btnClear").addEventListener("click", clearTrack);
+el("btnResetRot").addEventListener("click", () => {
+  if (map.getBearing) map.setBearing(0); // leaflet-rotate API
+});
 
 updateOnline();
 loadTrack();
