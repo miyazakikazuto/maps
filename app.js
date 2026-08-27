@@ -49,7 +49,7 @@ function toggleBaseLayer() {
   currentBase.addTo(map);
   // pindah ke bawah semua overlay (track/trail)
   trackLine.bringToFront();
-  trailLine.bringToFront();
+  trailGroup.bringToFront();
   meMarker && meMarker.bringToFront();
   localStorage.setItem("baseLayer", currentBase === baseTopo ? "topo" : "osm");
   el("statusText").textContent =
@@ -75,12 +75,25 @@ let recAccum = 0; // detik terakumulasi (pause-aware)
 let recTimer = null; // interval update durasi
 let heading = 0; // arah hadap HP (derajat, 0 = utara)
 let trackLine = L.polyline([], { color: "#22c55e", weight: 4 }).addTo(map);
-let trailLine = L.polyline([], {
-  color: "#3b82f6",
-  weight: 3,
-  dashArray: "6,6",
-}).addTo(map); // jalur rencana (dari file)
-let marker = null;
+// Trail rencana = group banyak polyline (1 per segmen, warna beda)
+const TRAIL_COLORS = ["#3b82f6","#ef4444","#f59e0b","#10b981","#a855f7","#ec4899","#14b8a6","#eab308","#8b5cf6","#06b6d4","#f97316","#84cc16"];
+let trailGroup = L.layerGroup().addTo(map);
+let currentSegments = []; // nested [[ [lat,lng],... ], ...] buat save/restore
+function clearTrailLines() {
+  trailGroup.clearLayers();
+}
+function addTrailSegment(segLatLngs, idx) {
+  const color = TRAIL_COLORS[idx % TRAIL_COLORS.length];
+  L.polyline(segLatLngs, { color, weight: 3, dashArray: "6,6" }).addTo(trailGroup);
+}
+// semua titik trail (flat) buat off-route check
+function allTrailLatLngs() {
+  const out = [];
+  trailGroup.eachLayer((l) => {
+    for (const ll of l.getLatLngs()) out.push({ lat: ll.lat, lng: ll.lng });
+  });
+  return out;
+}
 let meMarker = null; // dot biru "you are here"
 let meCircle = null; // lingkaran akurasi
 let lastMe = null; // simpan posisi GPS terakhir buat re-posisi setelah rotasi
@@ -194,7 +207,7 @@ function saveTrail() {
     localStorage.setItem(
       TRAIL_KEY,
       JSON.stringify({
-        track: trailLine.getLatLngs(),
+        track: currentSegments,
         waypoints: waypointData,
       })
     );
@@ -210,7 +223,9 @@ function loadTrailSaved() {
     // trailLine.getLatLngs() nested = [[ [lat,lng],... ], ...] (multi-segmen)
     const nested = Array.isArray(stored[0]) && Array.isArray(stored[0][0]);
     const segments = nested ? stored : [stored];
-    trailLine.setLatLngs(segments);
+    currentSegments = segments;
+    clearTrailLines();
+    segments.forEach((seg, i) => addTrailSegment(seg, i));
     const flatPts = segments.flat().map((p) => ({ lat: p[0], lng: p[1] }));
     const savedWps = Array.isArray(data) ? [] : data.waypoints || [];
     // jika GPX asli tak punya wpt, regenerate auto-waypoint dari track
@@ -222,9 +237,9 @@ function loadTrailSaved() {
 }
 // Lompat ke area trail rencana (jika ada).
 function focusTrail() {
-  if (trailLine.getLatLngs().length) {
-    map.fitBounds(trailLine.getBounds());
-    el("statusText").textContent = "Menuju area trail rencana (biru)";
+  if (trailGroup.getLayers().length) {
+    map.fitBounds(trailGroup.getBounds());
+    el("statusText").textContent = "Menuju area trail rencana (warna-warni)";
   } else {
     alert("Belum ada trail yang dimuat.");
   }
@@ -310,7 +325,7 @@ const OFFROUTE_M = 50; // ambang simpangan (meter)
 let offRouteActive = false;
 let lastVibrate = 0;
 function checkOffRoute(lat, lng) {
-  const line = trailLine.getLatLngs();
+  const line = allTrailLatLngs();
   if (line.length < 2) {
     hideOffRoute();
     return;
@@ -419,14 +434,16 @@ function loadTrail(file) {
         alert("Tidak ada titik track di file ini (GeoJSON/GPX).");
         return;
       }
-      // nested segments -> multi-polyline (tanpa garis lurus antar-segmen)
-      trailLine.setLatLngs(
-        segments.map((seg) => simplifyTrack(seg, 8).map((p) => [p.lat, p.lng]))
+      // nested segments -> 1 polyline berwarna beda per segmen
+      currentSegments = segments.map((seg) =>
+        simplifyTrack(seg, 8).map((p) => [p.lat, p.lng])
       );
+      clearTrailLines();
+      currentSegments.forEach((seg, i) => addTrailSegment(seg, i));
       // waypoint: dari file (wpt/trkpt name) + auto (start/puncak/finish)
       const wps = waypoints.concat(autoWaypoints(pts));
       drawWaypoints(wps);
-      map.fitBounds(trailLine.getBounds());
+      map.fitBounds(trailGroup.getBounds());
       saveTrail();
       el("statusText").textContent =
         "Trail dimuat (" + (/\.gpx$/i.test(file.name) ? "GPX" : "GeoJSON") +
@@ -565,7 +582,7 @@ function clearTrack() {
   }
   localStorage.removeItem(STORE_KEY);
   localStorage.removeItem(TRAIL_KEY);
-  trailLine.setLatLngs([]);
+  clearTrailLines();
   updateReadout();
   el("progress").hidden = true;
 }
@@ -582,8 +599,8 @@ el("btnExportGpx").addEventListener("click", exportGPX);
 el("btnDownload").addEventListener("click", downloadArea);
 el("btnClear").addEventListener("click", clearTrack);
 el("btnHideTrack").addEventListener("click", () => {
-  if (map.hasLayer(trackLine)) map.removeLayer(trackLine);
-  else trackLine.addTo(map);
+  if (map.hasLayer(trailGroup)) map.removeLayer(trailGroup);
+  else trailGroup.addTo(map);
 });
 el("btnResetRot").addEventListener("click", () => {
   if (map.getBearing) map.setBearing(0); // leaflet-rotate API
@@ -621,8 +638,8 @@ updateOnline();
 loadTrack();
 // Saat startup: prioritas trail rencana -> track tersimpan -> default Bandung.
 if (loadTrailSaved()) {
-  map.fitBounds(trailLine.getBounds());
-  el("statusText").textContent = "Trail rencana dimuat dari penyimpanan (biru)";
+  map.fitBounds(trailGroup.getBounds());
+  el("statusText").textContent = "Trail rencana dimuat dari penyimpanan (warna-warni)";
 } else if (track.length) {
   map.fitBounds(trackLine.getBounds());
 }
