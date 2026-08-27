@@ -76,9 +76,13 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
 .dot.online { background: #22c55e; }
 .dot.offline { background: #ef4444; }
 
-/* Panel slide-up, hidden by default */
+/* Panel slide-up overlay di bawah peta, hidden by default (display:none biar tak makan layout) */
 #panel {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 700;
   background: #0b0f14;
   color: #e6edf3;
   padding: 8px 10px;
@@ -88,9 +92,9 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
   overflow-y: auto;
   transform: translateY(100%);
   transition: transform 0.22s ease;
-  position: relative;
+  display: none;
 }
-#panel.open { transform: translateY(0); }
+#panel.open { display: block; transform: translateY(0); }
 
 /* Tombol jadi ikon kompak, wrap rapi */
 .btns { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
