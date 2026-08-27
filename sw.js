@@ -1,5 +1,5 @@
 // sw.js — Service Worker: cache app shell + map tiles for offline use.
-const CACHE = "trail-gps-v2"; // bump tiap deploy agar cache lama ter-purge
+const CACHE = "trail-gps-v3"; // bump tiap deploy agar cache lama ter-purge
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,7 +7,16 @@ const APP_SHELL = [
   "./geo.js",
   "./styles.css",
   "./manifest.webmanifest",
+  "./vendor/leaflet.js",
+  "./vendor/leaflet.css",
   "./vendor/leaflet-rotate.min.js",
+  "./vendor/images/layers.png",
+  "./vendor/images/layers-2x.png",
+  "./vendor/images/marker-icon.png",
+  "./vendor/images/marker-icon-2x.png",
+  "./vendor/images/marker-shadow.png",
+  "./icon-192.png",
+  "./icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
