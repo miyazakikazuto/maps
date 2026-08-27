@@ -80,13 +80,14 @@ function showMyLocation(lat, lng, acc) {
   }
 }
 
-// Hindari dot biru "geser sendiri" saat peta di-rotate:
-// sembunyikan saat mulai rotate, tampilkan + re-posisi setelah selesai.
-map.on("rotatestart", () => {
+// Hindari dot biru "geser sendiri" saat peta di-rotate.
+// Pakai pointer/touch events langsung (bukan event Leaflet yg kadang tdk fire):
+// saat >=2 jari menyentuh = gesture rotate -> sembunyikan dot, tampilkan lagi saat lepas.
+function hideMe() {
   if (meMarker) meMarker.setOpacity(0);
   if (meCircle) meCircle.setStyle({ opacity: 0, fillOpacity: 0 });
-});
-map.on("rotateend", () => {
+}
+function showMe() {
   if (lastMe && meMarker) {
     meMarker.setLatLng([lastMe.lat, lastMe.lng]).setOpacity(1);
     if (meCircle) {
@@ -94,7 +95,19 @@ map.on("rotateend", () => {
       meCircle.setStyle({ opacity: 1, fillOpacity: 0.15 });
     }
   }
-});
+}
+const mapEl = document.getElementById("map");
+if (mapEl) {
+  mapEl.addEventListener("touchstart", (e) => {
+    if (e.touches && e.touches.length >= 2) hideMe();
+  });
+  mapEl.addEventListener("touchend", (e) => {
+    if (e.touches && e.touches.length < 2) showMe();
+  });
+  mapEl.addEventListener("touchcancel", (e) => {
+    if (e.touches && e.touches.length < 2) showMe();
+  });
+}
 
 // ---- Service Worker ----
 if ("serviceWorker" in navigator) {
