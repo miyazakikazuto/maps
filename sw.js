@@ -44,7 +44,8 @@ self.addEventListener("fetch", (event) => {
 
   // Map tiles (a/b/c.tile.openstreetmap.org): cache-first, then network + cache.
   // (cache-first penting biar offline tetap bisa membaca tile yg sudah didownload)
-  if (url.hostname.endsWith("tile.openstreetmap.org")) {
+  if (url.hostname.endsWith("tile.openstreetmap.org") ||
+      url.hostname.endsWith("tile.opentopomap.org")) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
         const cached = await cache.match(event.request);

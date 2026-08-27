@@ -26,10 +26,33 @@ const map = L.map("map", {
   shiftKeyRotate: true,
 }).setView([-6.92, 109.99], 12); // default: Kendal (jika kosong)
 L.control.zoom({ position: "bottomleft" }).addTo(map);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+
+// Dua base layer: OSM (default) + OpenTopoMap (ada hillshade + kontur = 3D-ish)
+const baseOSM = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   attribution: "© OpenStreetMap",
-}).addTo(map);
+  subdomains: "abc",
+});
+const baseTopo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+  maxZoom: 17,
+  attribution: "© OpenStreetMap, © OpenTopoMap",
+  subdomains: "abc",
+});
+let currentBase = localStorage.getItem("baseLayer") === "topo" ? baseTopo : baseOSM;
+currentBase.addTo(map);
+
+function toggleBaseLayer() {
+  map.removeLayer(currentBase);
+  currentBase = currentBase === baseOSM ? baseTopo : baseOSM;
+  currentBase.addTo(map);
+  // pindah ke bawah semua overlay (track/trail)
+  trackLine.bringToFront();
+  trailLine.bringToFront();
+  meMarker && meMarker.bringToFront();
+  localStorage.setItem("baseLayer", currentBase === baseTopo ? "topo" : "osm");
+  el("statusText").textContent =
+    "Peta: " + (currentBase === baseTopo ? "Topo (relief)" : "OSM");
+}
 
 // Fix: di flexbox peta kadang ke-init pas kontainer masih 0 tinggi,
 // menyebabkan pan/drag rusak. Recalc ukuran setelah layout stabil.
@@ -519,6 +542,7 @@ el("btnTrail").addEventListener("click", focusTrail);
 el("btnMenu").addEventListener("click", () => {
   el("panel").classList.toggle("open");
 });
+el("btnMap").addEventListener("click", toggleBaseLayer);
 
 // ---- Kompas: arah hadap HP (deviceorientation) ----
 function onOrientation(e) {

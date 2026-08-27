@@ -59,6 +59,20 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
   color: #e6edf3;
   cursor: pointer;
 }
+#btnMap {
+  position: absolute;
+  top: 10px;
+  left: 58px;
+  z-index: 800;
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+  border-radius: 8px;
+  background: rgba(11, 15, 20, 0.75);
+  border: 1px solid #374151;
+  color: #e6edf3;
+  cursor: pointer;
+}
 
 /* Topbar mini selalu kelihatan (status + jarak kilat) */
 #topbar {
