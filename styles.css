@@ -1,6 +1,17 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
 #app { display: flex; flex-direction: column; height: 100%; }
+#offroute {
+  flex: 0 0 auto;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  padding: 10px 12px;
+  font-size: 14px;
+  z-index: 1000;
+}
+#offroute[hidden] { display: none; }
 #map { flex: 1 1 auto; min-height: 0; touch-action: none; }
 #panel {
   flex: 0 0 auto;

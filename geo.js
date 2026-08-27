@@ -150,3 +150,28 @@ export function distanceMeters(a, b) {
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
 }
+
+// Proyeksi titik p ke segmen AB (meter). Appro planar — akurat untuk jarak < ~10km.
+function pointToSegmentMeters(p, a, b) {
+  if (distanceMeters(a, b) < 1e-6) return distanceMeters(p, a);
+  const denom = (b.lat - a.lat) ** 2 + (b.lng - a.lng) ** 2;
+  if (denom < 1e-12) return distanceMeters(p, a);
+  let t = ((p.lat - a.lat) * (b.lat - a.lat) + (p.lng - a.lng) * (b.lng - a.lng)) / denom;
+  t = Math.max(0, Math.min(1, t));
+  const proj = {
+    lat: a.lat + t * (b.lat - a.lat),
+    lng: a.lng + t * (b.lng - a.lng),
+  };
+  return distanceMeters(p, proj);
+}
+
+// Jarak terpendek titik p ke polyline (array {lat,lng}). Infinity jika <2 titik.
+export function offRouteMeters(p, line) {
+  if (!line || line.length < 2) return Infinity;
+  let min = Infinity;
+  for (let i = 1; i < line.length; i++) {
+    const d = pointToSegmentMeters(p, line[i - 1], line[i]);
+    if (d < min) min = d;
+  }
+  return min;
+}

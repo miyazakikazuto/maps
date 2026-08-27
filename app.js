@@ -9,6 +9,7 @@ import {
   parseTrack,
   elevationGain,
   distanceMeters,
+  offRouteMeters,
 } from "./geo.js";
 
 const STORE_KEY = "trail-track-v1";
@@ -234,8 +235,48 @@ function onPosition(pos) {
   }
   if (followMode) map.panTo([lat, lng]);
   showMyLocation(lat, lng, acc);
+  checkOffRoute(lat, lng);
   saveTrack();
   updateReadout();
+}
+// Peringatan kalau menyimpang dari trail rencana (biru).
+const OFFROUTE_M = 50; // ambang simpangan (meter)
+let offRouteActive = false;
+let lastVibrate = 0;
+function checkOffRoute(lat, lng) {
+  const line = trailLine.getLatLngs();
+  if (line.length < 2) {
+    hideOffRoute();
+    return;
+  }
+  const d = offRouteMeters({ lat, lng }, line);
+  if (d > OFFROUTE_M) {
+    if (!offRouteActive) {
+      offRouteActive = true;
+      el("offroute").hidden = false;
+      el("offroute").textContent =
+        "⚠️ KELUAR JALUR " + Math.round(d) + " m — kembali ke trail biru!";
+      // getar HP (jika didukung & diizinkan)
+      if (navigator.vibrate) {
+        const now = Date.now();
+        if (now - lastVibrate > 1500) {
+          navigator.vibrate([200, 100, 200]);
+          lastVibrate = now;
+        }
+      }
+    } else {
+      el("offroute").textContent =
+        "⚠️ KELUAR JALUR " + Math.round(d) + " m — kembali ke trail biru!";
+    }
+  } else {
+    hideOffRoute();
+  }
+}
+function hideOffRoute() {
+  if (offRouteActive) {
+    offRouteActive = false;
+    el("offroute").hidden = true;
+  }
 }
 function onPositionError(err) {
   el("statusText").textContent = "GPS error: " + err.message;

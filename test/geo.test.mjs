@@ -11,6 +11,7 @@ import {
   parseTrack,
   elevationGain,
   distanceMeters,
+  offRouteMeters,
 } from "../geo.js";
 
 // Tile math — world bounds at zoom 0 is a single tile (0,0)
@@ -102,5 +103,17 @@ assert.ok(d > 0 && d < 100000);
 
 // distance zero for identical point
 assert.strictEqual(distanceMeters({ lat: 1, lng: 1 }, { lat: 1, lng: 1 }), 0);
+
+// offRouteMeters: titik di atas garis -> ~0; titik jauh -> besar
+const line = [
+  { lat: -6.200, lng: 106.800 },
+  { lat: -6.201, lng: 106.801 },
+];
+const onLine = { lat: -6.2005, lng: 106.8005 };
+assert.ok(offRouteMeters(onLine, line) < 5);
+const far = { lat: -6.210, lng: 106.810 };
+assert.ok(offRouteMeters(far, line) > 1000);
+// line kosong -> Infinity (tidak ada trail)
+assert.strictEqual(offRouteMeters({ lat: 0, lng: 0 }, []), Infinity);
 
 console.log("ALL GEO TESTS PASSED ✅");
