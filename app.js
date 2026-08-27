@@ -12,6 +12,7 @@ import {
 } from "./geo.js";
 
 const STORE_KEY = "trail-track-v1";
+const TRAIL_KEY = "trail-plan-v1"; // jalur rencana (dari file) persist
 const MIN_MOVE_M = 2; // abaikan titik yg terlalu dekat (kurangi noise)
 const MAX_TILES = 4000; // batas download area (etika OSM)
 
@@ -157,6 +158,31 @@ function loadTrack() {
   } catch (e) {}
   updateReadout();
 }
+function saveTrail() {
+  try {
+    localStorage.setItem(TRAIL_KEY, JSON.stringify(trailLine.getLatLngs()));
+  } catch (e) {}
+}
+function loadTrailSaved() {
+  try {
+    const raw = localStorage.getItem(TRAIL_KEY);
+    if (!raw) return false;
+    const pts = JSON.parse(raw);
+    if (!pts.length) return false;
+    trailLine.setLatLngs(pts);
+    return true;
+  } catch (e) {}
+  return false;
+}
+// Lompat ke area trail rencana (jika ada).
+function focusTrail() {
+  if (trailLine.getLatLngs().length) {
+    map.fitBounds(trailLine.getBounds());
+    el("statusText").textContent = "Menuju area trail rencana (biru)";
+  } else {
+    alert("Belum ada trail yang dimuat.");
+  }
+}
 function redraw() {
   trackLine.setLatLngs(track.map((p) => [p.lat, p.lng]));
 }
@@ -274,6 +300,7 @@ function loadTrail(file) {
       }
       trailLine.setLatLngs(pts.map((p) => [p.lat, p.lng]));
       map.fitBounds(trailLine.getBounds());
+      saveTrail();
       el("statusText").textContent =
         "Trail dimuat (" + (/\.gpx$/i.test(file.name) ? "GPX" : "GeoJSON") +
         "): " + pts.length + " titik (biru = rencana)";
@@ -384,6 +411,8 @@ function clearTrack() {
     marker = null;
   }
   localStorage.removeItem(STORE_KEY);
+  localStorage.removeItem(TRAIL_KEY);
+  trailLine.setLatLngs([]);
   updateReadout();
   el("progress").hidden = true;
 }
@@ -402,6 +431,14 @@ el("btnClear").addEventListener("click", clearTrack);
 el("btnResetRot").addEventListener("click", () => {
   if (map.getBearing) map.setBearing(0); // leaflet-rotate API
 });
+el("btnTrail").addEventListener("click", focusTrail);
 
 updateOnline();
 loadTrack();
+// Saat startup: prioritas trail rencana -> track tersimpan -> default Bandung.
+if (loadTrailSaved()) {
+  map.fitBounds(trailLine.getBounds());
+  el("statusText").textContent = "Trail rencana dimuat dari penyimpanan (biru)";
+} else if (track.length) {
+  map.fitBounds(trackLine.getBounds());
+}

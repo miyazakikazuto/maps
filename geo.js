@@ -104,16 +104,18 @@ ${seg}
 }
 
 export function parseGPX(xml) {
+  // Tahan banting: support single/double quote, namespace prefix (a:trkpt),
+  // atribut berantakan, dan <ele>/<time> dengan whitespace.
   const re =
-    /<(?:trkpt|rtept|wpt)\s+lat="(-?\d+(?:\.\d+)?)"\s+lon="(-?\d+(?:\.\d+)?)"[^>]*>([\s\S]*?)<\/(?:trkpt|rtept|wpt)>/g;
+    /<(?:[\w-]+:)?(?:trkpt|rtept|wpt)\b[^>]*?\slat\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*?\slon\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/(?:[\w-]+:)?(?:trkpt|rtept|wpt)>/gi;
   const pts = [];
   let m;
   while ((m = re.exec(xml)) !== null) {
     const lat = parseFloat(m[1]);
     const lng = parseFloat(m[2]);
     const inner = m[3];
-    const eleM = /<ele>([\s\S]*?)<\/ele>/.exec(inner);
-    const timeM = /<time>([\s\S]*?)<\/time>/.exec(inner);
+    const eleM = /<ele>\s*([\s\S]*?)\s*<\/ele>/i.exec(inner);
+    const timeM = /<time>\s*([\s\S]*?)\s*<\/time>/i.exec(inner);
     pts.push({
       lat,
       lng,

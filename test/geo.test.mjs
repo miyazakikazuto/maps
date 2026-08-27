@@ -75,6 +75,22 @@ assert.strictEqual(gpxBack.length, 2);
 assert.strictEqual(gpxBack[0].lat, -6.2);
 assert.strictEqual(gpxBack[1].alt, 1010);
 
+// GPX dengan namespace prefix + single quote + whitespace (Garmin/OsmAnd style)
+const gpxNs = `<?xml version="1.0"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3">
+  <trk><trkseg>
+    <gpxx:trkpt lat='-6.2' lon='106.8' >
+      <ele> 1000 </ele>
+    </gpxx:trkpt>
+    <wpt lat='-6.21' lon='106.81'><ele>1010</ele></wpt>
+  </trkseg></trk>
+</gpx>`;
+const nsBack = parseGPX(gpxNs);
+assert.strictEqual(nsBack.length, 2);
+assert.strictEqual(nsBack[0].lat, -6.2);
+assert.strictEqual(nsBack[0].alt, 1000);
+assert.strictEqual(nsBack[1].lng, 106.81);
+
 // parseTrack auto-detects GPX vs GeoJSON by content + filename
 assert.strictEqual(parseTrack(gpx, "x.gpx").length, 2);
 assert.strictEqual(parseTrack(JSON.stringify(gj), "x.geojson").length, 2);
