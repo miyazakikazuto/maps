@@ -1,0 +1,6 @@
+# Build output / binary (APK, AAB, keystore rahasia) — jangan di-push ke GitHub
+dist/
+
+# Editor / OS
+.DS_Store
+*.swp
