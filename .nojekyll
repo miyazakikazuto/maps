@@ -1,0 +1,2 @@
+# Dismiss GitHub's Jekyll processing so raw assets (sw.js, geo.js, manifest)
+# are served exactly as written.
