@@ -32,7 +32,34 @@ let trailLine = L.polyline([], {
   dashArray: "6,6",
 }).addTo(map); // jalur rencana (dari file)
 let marker = null;
+let meMarker = null; // dot biru "you are here"
+let meCircle = null; // lingkaran akurasi
 const el = (id) => document.getElementById(id);
+
+// Tampilkan penanda lokasi saya (dot biru) + lingkaran akurasi.
+function showMyLocation(lat, lng, acc) {
+  if (!meMarker) {
+    meMarker = L.circleMarker([lat, lng], {
+      radius: 8,
+      color: "#3b82f6",
+      weight: 2,
+      fillColor: "#3b82f6",
+      fillOpacity: 0.9,
+    }).addTo(map);
+  } else {
+    meMarker.setLatLng([lat, lng]);
+  }
+  if (meCircle) map.removeLayer(meCircle);
+  if (acc && acc > 0) {
+    meCircle = L.circle([lat, lng], {
+      radius: acc,
+      color: "#3b82f6",
+      weight: 1,
+      fillColor: "#3b82f6",
+      fillOpacity: 0.15,
+    }).addTo(map);
+  }
+}
 
 // ---- Service Worker ----
 if ("serviceWorker" in navigator) {
@@ -119,6 +146,7 @@ function onPosition(pos) {
     marker.setLatLng([lat, lng]);
   }
   if (followMode) map.panTo([lat, lng]);
+  showMyLocation(lat, lng, acc);
   saveTrack();
   updateReadout();
 }
@@ -154,11 +182,13 @@ function stopRecording() {
 function centerOnMe() {
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(
-    (p) =>
+    (p) => {
       map.setView(
         [p.coords.latitude, p.coords.longitude],
         Math.max(map.getZoom(), 15)
-      ),
+      );
+      showMyLocation(p.coords.latitude, p.coords.longitude, p.coords.accuracy);
+    },
     onPositionError,
     { enableHighAccuracy: true, timeout: 10000 }
   );
