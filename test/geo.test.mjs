@@ -86,11 +86,12 @@ const gpxNs = `<?xml version="1.0"?>
     <wpt lat='-6.21' lon='106.81'><ele>1010</ele></wpt>
   </trkseg></trk>
 </gpx>`;
+// wpt tanpa <name> diabaikan (bukan track, bukan waypoint) -> track cuma 1
 const nsBack = parseGPX(gpxNs);
-assert.strictEqual(nsBack.track.length, 2);
+assert.strictEqual(nsBack.track.length, 1);
 assert.strictEqual(nsBack.track[0].lat, -6.2);
 assert.strictEqual(nsBack.track[0].alt, 1000);
-assert.strictEqual(nsBack.track[1].lng, 106.81);
+assert.strictEqual(nsBack.waypoints.length, 0);
 
 // parseTrack auto-detects GPX vs GeoJSON by content + filename
 assert.strictEqual(parseTrack(gpx, "x.gpx").track.length, 2);

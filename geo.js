@@ -118,13 +118,20 @@ export function parseGPX(xml) {
     const eleM = /<ele>\s*([\s\S]*?)\s*<\/ele>/i.exec(inner);
     const timeM = /<time>\s*([\s\S]*?)\s*<\/time>/i.exec(inner);
     const nameM = /<name>\s*([\s\S]*?)\s*<\/name>/i.exec(inner);
-    const pt = { lat, lng, alt: eleM ? parseFloat(eleM[1]) : null, t: timeM ? Date.parse(timeM[1]) : null };
-    if (/wpt/i.test(m[0]) && nameM) {
-      // waypoint (pos / puncak) — simpan nama
+    const isWpt = /wpt/i.test(m[0]);
+    if (nameM) {
+      // apapun yang punya <name> -> waypoint (pos / puncak), jangan di track
       waypoints.push({ lat, lng, name: nameM[1].trim() });
-    } else {
-      track.push(pt);
+    } else if (!isWpt) {
+      // trkpt/rtept tanpa nama -> track biasa
+      track.push({
+        lat,
+        lng,
+        alt: eleM ? parseFloat(eleM[1]) : null,
+        t: timeM ? Date.parse(timeM[1]) : null,
+      });
     }
+    // wpt tanpa nama: abaikan (biasanya cuma tichel)
   }
   return { track, waypoints };
 }
@@ -171,6 +178,27 @@ function pointToSegmentMeters(p, a, b) {
     lng: a.lng + t * (b.lng - a.lng),
   };
   return distanceMeters(p, proj);
+}
+
+// Auto-generate waypoints dari track jika GPX tidak punya <wpt>:
+// - titik pertama (Start), titik tertinggi (Puncak), titik terakhir (Finish)
+export function autoWaypoints(track) {
+  if (!track || track.length < 2) return [];
+  const out = [];
+  const first = track[0];
+  out.push({ lat: first.lat, lng: first.lng, name: "Start" });
+  let peak = track[0];
+  for (const p of track) if (p.alt != null && (peak.alt == null || p.alt > peak.alt)) peak = p;
+  if (peak !== first && peak !== track[track.length - 1]) {
+    out.push({
+      lat: peak.lat,
+      lng: peak.lng,
+      name: "Puncak (" + Math.round(peak.alt) + " m)",
+    });
+  }
+  const last = track[track.length - 1];
+  if (last !== first) out.push({ lat: last.lat, lng: last.lng, name: "Finish" });
+  return out;
 }
 
 // Jarak terpendek titik p ke polyline (array {lat,lng}). Infinity jika <2 titik.

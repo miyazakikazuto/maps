@@ -10,6 +10,7 @@ import {
   elevationGain,
   distanceMeters,
   offRouteMeters,
+  autoWaypoints,
 } from "./geo.js";
 
 const STORE_KEY = "trail-track-v1";
@@ -206,7 +207,10 @@ function loadTrailSaved() {
     const pts = Array.isArray(data) ? data : data.track; // kompatibel lama
     if (!pts || !pts.length) return false;
     trailLine.setLatLngs(pts);
-    drawWaypoints(Array.isArray(data) ? [] : data.waypoints || []);
+    const savedWps = Array.isArray(data) ? [] : data.waypoints || [];
+    // jika GPX asli tak punya wpt, regenerate auto-waypoint dari track
+    const wps = savedWps.length ? savedWps : autoWaypoints(pts.map((p) => ({ lat: p[0], lng: p[1] })));
+    drawWaypoints(wps);
     return true;
   } catch (e) {}
   return false;
@@ -411,7 +415,9 @@ function loadTrail(file) {
         return;
       }
       trailLine.setLatLngs(pts.map((p) => [p.lat, p.lng]));
-      drawWaypoints(waypoints);
+      // waypoint: dari file (wpt/trkpt name) + auto (start/puncak/finish)
+      const wps = waypoints.concat(autoWaypoints(pts));
+      drawWaypoints(wps);
       map.fitBounds(trailLine.getBounds());
       saveTrail();
       el("statusText").textContent =
