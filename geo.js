@@ -127,10 +127,15 @@ export function parseGPX(xml) {
 // Auto-detect format from content + filename: GPX or GeoJSON.
 export function parseTrack(content, filename = "") {
   const trimmed = (content || "").trim();
-  if (/<gpx[\s>]/i.test(trimmed) || /\.gpx$/i.test(filename)) {
+  const looksGpx =
+    /<gpx|<trkpt|<rtept|<wpt/i.test(trimmed) || /\.gpx$/i.test(filename);
+  if (looksGpx) return parseGPX(trimmed);
+  // try GeoJSON first, fall back to GPX if it wasn't actually JSON
+  try {
+    return parseGeoJSON(JSON.parse(trimmed));
+  } catch (e) {
     return parseGPX(trimmed);
   }
-  return parseGeoJSON(JSON.parse(trimmed));
 }
 
 export function distanceMeters(a, b) {
