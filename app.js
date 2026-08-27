@@ -51,10 +51,12 @@ let trailLine = L.polyline([], {
 let marker = null;
 let meMarker = null; // dot biru "you are here"
 let meCircle = null; // lingkaran akurasi
+let lastMe = null; // simpan posisi GPS terakhir buat re-posisi setelah rotasi
 const el = (id) => document.getElementById(id);
 
 // Tampilkan penanda lokasi saya (dot biru) + lingkaran akurasi.
 function showMyLocation(lat, lng, acc) {
+  lastMe = { lat, lng, acc };
   if (!meMarker) {
     meMarker = L.circleMarker([lat, lng], {
       radius: 8,
@@ -77,6 +79,22 @@ function showMyLocation(lat, lng, acc) {
     }).addTo(map);
   }
 }
+
+// Hindari dot biru "geser sendiri" saat peta di-rotate:
+// sembunyikan saat mulai rotate, tampilkan + re-posisi setelah selesai.
+map.on("rotatestart", () => {
+  if (meMarker) meMarker.setOpacity(0);
+  if (meCircle) meCircle.setStyle({ opacity: 0, fillOpacity: 0 });
+});
+map.on("rotateend", () => {
+  if (lastMe && meMarker) {
+    meMarker.setLatLng([lastMe.lat, lastMe.lng]).setOpacity(1);
+    if (meCircle) {
+      meCircle.setLatLng([lastMe.lat, lastMe.lng]);
+      meCircle.setStyle({ opacity: 1, fillOpacity: 0.15 });
+    }
+  }
+});
 
 // ---- Service Worker ----
 if ("serviceWorker" in navigator) {
