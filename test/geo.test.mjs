@@ -72,9 +72,9 @@ const gpx = buildGPX(pts, "Gunung");
 assert.ok(gpx.includes("<gpx"));
 assert.ok(gpx.includes('lat="-6.2"'));
 const gpxBack = parseGPX(gpx);
-assert.strictEqual(gpxBack.length, 2);
-assert.strictEqual(gpxBack[0].lat, -6.2);
-assert.strictEqual(gpxBack[1].alt, 1010);
+assert.strictEqual(gpxBack.track.length, 2);
+assert.strictEqual(gpxBack.track[0].lat, -6.2);
+assert.strictEqual(gpxBack.track[1].alt, 1010);
 
 // GPX dengan namespace prefix + single quote + whitespace (Garmin/OsmAnd style)
 const gpxNs = `<?xml version="1.0"?>
@@ -87,15 +87,20 @@ const gpxNs = `<?xml version="1.0"?>
   </trkseg></trk>
 </gpx>`;
 const nsBack = parseGPX(gpxNs);
-assert.strictEqual(nsBack.length, 2);
-assert.strictEqual(nsBack[0].lat, -6.2);
-assert.strictEqual(nsBack[0].alt, 1000);
-assert.strictEqual(nsBack[1].lng, 106.81);
+assert.strictEqual(nsBack.track.length, 2);
+assert.strictEqual(nsBack.track[0].lat, -6.2);
+assert.strictEqual(nsBack.track[0].alt, 1000);
+assert.strictEqual(nsBack.track[1].lng, 106.81);
 
 // parseTrack auto-detects GPX vs GeoJSON by content + filename
-assert.strictEqual(parseTrack(gpx, "x.gpx").length, 2);
-assert.strictEqual(parseTrack(JSON.stringify(gj), "x.geojson").length, 2);
-assert.strictEqual(parseTrack(gpx).length, 2); // content-only detection
+assert.strictEqual(parseTrack(gpx, "x.gpx").track.length, 2);
+assert.strictEqual(parseTrack(JSON.stringify(gj), "x.geojson").track.length, 2);
+assert.strictEqual(parseTrack(gpx).track.length, 2); // content-only detection
+// GPX dengan <wpt name> -> waypoints terpisah
+const gpxWpt = `<?xml version="1.0"?><gpx><wpt lat="-7.38" lon="110.04"><ele>3000</ele><name>1st Pos Sumbing</name></wpt><trk><trkseg><trkpt lat="-7.38" lon="110.04"/><trkpt lat="-7.39" lon="110.05"/></trkseg></trk></gpx>`;
+const wt = parseTrack(gpxWpt).waypoints;
+assert.strictEqual(wt.length, 1);
+assert.strictEqual(wt[0].name, "1st Pos Sumbing");
 
 // distance: two close points -> small positive meters
 const d = distanceMeters({ lat: -6.2, lng: 106.8 }, { lat: -6.21, lng: 106.81 });

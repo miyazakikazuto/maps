@@ -103,12 +103,13 @@ ${seg}
 </gpx>`;
 }
 
+// Parse GPX: pisahkan track (trkpt/rtept) dari waypoint (wpt) yang punya nama.
+// Mengembalikan { track: [{lat,lng,alt,t}], waypoints: [{lat,lng,name}] }
 export function parseGPX(xml) {
-  // Tahan banting: support single/double quote, namespace prefix (a:trkpt),
-  // atribut berantakan, dan <ele>/<time> dengan whitespace.
   const re =
-    /<(?:[\w-]+:)?(?:trkpt|rtept|wpt)\b[^>]*?\slat\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*?\slon\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/(?:[\w-]+:)?(?:trkpt|rtept|wpt)>/gi;
-  const pts = [];
+    /<(?:[\w-]+:)?(?:wpt|trkpt|rtept)\b[^>]*?\slat\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*?\slon\s*=\s*["'](-?\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/(?:[\w-]+:)?(?:wpt|trkpt|rtept)>/gi;
+  const track = [];
+  const waypoints = [];
   let m;
   while ((m = re.exec(xml)) !== null) {
     const lat = parseFloat(m[1]);
@@ -116,27 +117,34 @@ export function parseGPX(xml) {
     const inner = m[3];
     const eleM = /<ele>\s*([\s\S]*?)\s*<\/ele>/i.exec(inner);
     const timeM = /<time>\s*([\s\S]*?)\s*<\/time>/i.exec(inner);
-    pts.push({
-      lat,
-      lng,
-      alt: eleM ? parseFloat(eleM[1]) : null,
-      t: timeM ? Date.parse(timeM[1]) : null,
-    });
+    const nameM = /<name>\s*([\s\S]*?)\s*<\/name>/i.exec(inner);
+    const pt = { lat, lng, alt: eleM ? parseFloat(eleM[1]) : null, t: timeM ? Date.parse(timeM[1]) : null };
+    if (/wpt/i.test(m[0]) && nameM) {
+      // waypoint (pos / puncak) — simpan nama
+      waypoints.push({ lat, lng, name: nameM[1].trim() });
+    } else {
+      track.push(pt);
+    }
   }
-  return pts;
+  return { track, waypoints };
 }
 
 // Auto-detect format from content + filename: GPX or GeoJSON.
+// GPX mengembalikan { track, waypoints }; GeoJSON hanya track (waypoints=[]).
 export function parseTrack(content, filename = "") {
   const trimmed = (content || "").trim();
   const looksGpx =
     /<gpx|<trkpt|<rtept|<wpt/i.test(trimmed) || /\.gpx$/i.test(filename);
-  if (looksGpx) return parseGPX(trimmed);
+  if (looksGpx) {
+    const { track, waypoints } = parseGPX(trimmed);
+    return { track, waypoints };
+  }
   // try GeoJSON first, fall back to GPX if it wasn't actually JSON
   try {
-    return parseGeoJSON(JSON.parse(trimmed));
+    return { track: parseGeoJSON(JSON.parse(trimmed)), waypoints: [] };
   } catch (e) {
-    return parseGPX(trimmed);
+    const { track, waypoints } = parseGPX(trimmed);
+    return { track, waypoints };
   }
 }
 

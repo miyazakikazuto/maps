@@ -189,16 +189,24 @@ function loadTrack() {
 }
 function saveTrail() {
   try {
-    localStorage.setItem(TRAIL_KEY, JSON.stringify(trailLine.getLatLngs()));
+    localStorage.setItem(
+      TRAIL_KEY,
+      JSON.stringify({
+        track: trailLine.getLatLngs(),
+        waypoints: waypointData,
+      })
+    );
   } catch (e) {}
 }
 function loadTrailSaved() {
   try {
     const raw = localStorage.getItem(TRAIL_KEY);
     if (!raw) return false;
-    const pts = JSON.parse(raw);
-    if (!pts.length) return false;
+    const data = JSON.parse(raw);
+    const pts = Array.isArray(data) ? data : data.track; // kompatibel lama
+    if (!pts || !pts.length) return false;
     trailLine.setLatLngs(pts);
+    drawWaypoints(Array.isArray(data) ? [] : data.waypoints || []);
     return true;
   } catch (e) {}
   return false;
@@ -397,22 +405,46 @@ function loadTrail(file) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const pts = parseTrack(reader.result, file.name);
+      const { track: pts, waypoints } = parseTrack(reader.result, file.name);
       if (!pts.length) {
         alert("Tidak ada titik track di file ini (GeoJSON/GPX).");
         return;
       }
       trailLine.setLatLngs(pts.map((p) => [p.lat, p.lng]));
+      drawWaypoints(waypoints);
       map.fitBounds(trailLine.getBounds());
       saveTrail();
       el("statusText").textContent =
         "Trail dimuat (" + (/\.gpx$/i.test(file.name) ? "GPX" : "GeoJSON") +
-        "): " + pts.length + " titik (biru = rencana)";
+        "): " + pts.length + " titik" +
+        (waypoints.length ? ", " + waypoints.length + " pos" : "") +
+        " (biru = rencana)";
     } catch (e) {
       alert("Gagal parse file: " + e.message);
     }
   };
   reader.readAsText(file);
+}
+
+// --- Waypoint / POI (pos, puncak) dari GPX <wpt> ---
+let waypointData = []; // [{lat,lng,name}]
+const waypointLayer = L.layerGroup().addTo(map);
+function drawWaypoints(list) {
+  waypointData = list || [];
+  waypointLayer.clearLayers();
+  for (const w of waypointData) {
+    const isPeak = /puncak|peak|summit|gunung/i.test(w.name);
+    const color = isPeak ? "#f97316" : "#22c55e"; // puncak oranye, pos hijau
+    const m = L.circleMarker([w.lat, w.lng], {
+      radius: 7,
+      color: "#0b0f14",
+      weight: 2,
+      fillColor: color,
+      fillOpacity: 1,
+    }).addTo(waypointLayer);
+    m.bindPopup("<b>" + w.name + "</b>");
+    m.bindTooltip(w.name, { direction: "top", offset: [0, -6] });
+  }
 }
 
 // ---- Export GeoJSON ----

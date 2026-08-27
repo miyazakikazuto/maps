@@ -67,7 +67,7 @@ self.addEventListener("fetch", (event) => {
   // App shell: NETWORK-FIRST (selalu fresh saat online) dengan fallback cache (offline).
   if (event.request.method === "GET") {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: "reload" }) // bypass disk cache -> selalu fresh
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(event.request, copy));
