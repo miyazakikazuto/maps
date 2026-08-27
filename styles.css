@@ -7,58 +7,32 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
   color: #fff;
   font-weight: 700;
   text-align: center;
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 13px;
   z-index: 1000;
 }
 #offroute[hidden] { display: none; }
-#map { flex: 1 1 auto; min-height: 0; touch-action: none; }
-#panel {
-  flex: 0 0 auto;
-  background: #0b0f14;
-  color: #e6edf3;
-  padding: 10px 12px;
-  border-top: 1px solid #1f2937;
-  font-size: 14px;
-}
-#status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot.online { background: #22c55e; }
-.dot.offline { background: #ef4444; }
-.btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-button {
-  background: #1f2937;
-  color: #e6edf3;
-  border: 1px solid #374151;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
-button:disabled { opacity: 0.4; cursor: not-allowed; }
-button:not(:disabled):active { background: #374151; }
-#btnStart:not(:disabled) { background: #166534; border-color: #22c55e; }
-#btnStop:not(:disabled) { background: #7f1d1d; border-color: #ef4444; }
-#readout { display: flex; flex-wrap: wrap; gap: 4px 16px; color: #9ca3af; }
-#readout b { color: #e6edf3; }
-#progress {
-  margin-top: 8px;
-  color: #60a5fa;
-  font-size: 13px;
-}
-#legend { margin-top: 8px; color: #9ca3af; font-size: 12px; }
-#legend .lg { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 4px; }
-#legend .lg.green { background: #22c55e; }
-#legend .lg.blue { background: #3b82f6; }
+
+/* Peta mengisi sisa layar; panel cuma tinggi otomatis di bawah */
+#map { flex: 1 1 auto; min-height: 0; touch-action: none; position: relative; }
+
+/* Kompas mengambang di pojok kanan atas peta (overlay) */
 #compass {
-  margin-top: 8px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 800;
+  background: rgba(11, 15, 20, 0.75);
+  border-radius: 8px;
+  padding: 6px 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
 }
 #compassArrow {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 2px solid #3b82f6;
   color: #3b82f6;
@@ -68,9 +42,55 @@ button:not(:disabled):active { background: #374151; }
   justify-content: center;
   transition: transform 0.1s linear;
 }
-#compassDeg { color: #e6edf3; font-size: 14px; }
+#compassDeg { color: #e6edf3; font-size: 12px; }
+
+#panel {
+  flex: 0 0 auto;
+  background: #0b0f14;
+  color: #e6edf3;
+  padding: 8px 10px;
+  border-top: 1px solid #1f2937;
+  font-size: 13px;
+}
+#status { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.online { background: #22c55e; }
+.dot.offline { background: #ef4444; }
+
+/* Tombol jadi ikon kompak, wrap rapi */
+.btns { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+button {
+  background: #1f2937;
+  color: #e6edf3;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button:not(:disabled):active { background: #374151; }
+#btnStart:not(:disabled) { background: #166534; border-color: #22c55e; }
+#btnStop:not(:disabled) { background: #7f1d1d; border-color: #ef4444; }
+
+/* Readout grid 2 kolom, hemat tinggi */
+#readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+#readout b { color: #e6edf3; }
+#progress { margin-top: 6px; color: #60a5fa; font-size: 12px; }
+#legend { margin-top: 6px; color: #9ca3af; font-size: 11px; }
+#legend .lg { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+#legend .lg.green { background: #22c55e; }
+#legend .lg.blue { background: #3b82f6; }
+
 @media (min-width: 700px) {
   #app { flex-direction: row; }
   #map { flex: 1 1 auto; }
-  #panel { flex: 0 0 280px; height: 100%; border-top: none; border-left: 1px solid #1f2937; overflow-y: auto; }
+  #panel { flex: 0 0 260px; height: 100%; border-top: none; border-left: 1px solid #1f2937; overflow-y: auto; }
 }

@@ -13,25 +13,30 @@
   </head>
   <body>
     <div id="app">
-    <div id="offroute" hidden></div>
-    <div id="map"></div>
+      <div id="offroute" hidden></div>
+      <div id="map">
+        <div id="compass" title="Arah hadap">
+          <div id="compassArrow">↑N</div>
+          <div id="compassDeg">–</div>
+        </div>
+      </div>
       <div id="panel">
         <div id="status">
           <span id="onlineDot" class="dot offline" title="Status jaringan"></span>
           <span id="statusText">Menyiapkan…</span>
         </div>
         <div class="btns">
-          <button id="btnCenter">📍 Lokasi Saya</button>
-          <button id="btnStart">▶ Mulai Rekam</button>
-          <button id="btnStop" disabled>■ Stop</button>
-          <button id="btnFollow">🧭 Ikuti: ON</button>
-          <button id="btnTrail">🎯 Ke Trail</button>
-          <button id="btnDownload">⬇ Download Area</button>
-          <button id="btnLoad">📂 Muat Trail</button>
-          <button id="btnExport">⤓ Export GeoJSON</button>
-          <button id="btnExportGpx">⤓ Export GPX</button>
-          <button id="btnClear">🗑 Bersihkan</button>
-          <button id="btnResetRot">🔄 Reset Arah</button>
+          <button id="btnCenter" title="Lokasi saya">📍</button>
+          <button id="btnStart" class="primary" title="Mulai rekam">▶</button>
+          <button id="btnStop" disabled title="Stop">■</button>
+          <button id="btnFollow" title="Ikuti">🧭</button>
+          <button id="btnTrail" title="Ke trail">🎯</button>
+          <button id="btnDownload" title="Download area">⬇</button>
+          <button id="btnLoad" title="Muat trail">📂</button>
+          <button id="btnExport" title="Export GeoJSON">⤓J</button>
+          <button id="btnExportGpx" title="Export GPX">⤓G</button>
+          <button id="btnClear" title="Bersihkan">🗑</button>
+          <button id="btnResetRot" title="Reset arah">🔄</button>
           <input
             id="fileInput"
             type="file"
@@ -40,22 +45,18 @@
           />
         </div>
         <div id="readout">
-          <div>Titik: <b id="ptCount">0</b></div>
-          <div>Jarak: <b id="dist">0 m</b></div>
-          <div>Gain: <b id="gain">0 m</b></div>
-          <div>Durasi: <b id="dur">0:00</b></div>
-          <div>Pace: <b id="pace">–</b></div>
-          <div>Kecepatan: <b id="speed">–</b></div>
-          <div>Akurasi: <b id="acc">–</b></div>
-          <div>Lat/Lng: <b id="ll">–</b></div>
-        </div>
-        <div id="compass">
-          <div id="compassArrow">↑N</div>
-          <div id="compassDeg">–</div>
+          <div>Titik <b id="ptCount">0</b></div>
+          <div>Jarak <b id="dist">0 m</b></div>
+          <div>Gain <b id="gain">0 m</b></div>
+          <div>Durasi <b id="dur">0:00</b></div>
+          <div>Pace <b id="pace">–</b></div>
+          <div>Kecepatan <b id="speed">–</b></div>
+          <div>Akurasi <b id="acc">–</b></div>
+          <div>Lat/Lng <b id="ll">–</b></div>
         </div>
         <div id="legend">
-          <span class="lg green"></span> Jalur kamu (real-time) &nbsp;
-          <span class="lg blue"></span> Trail rencana (dari file)
+          <span class="lg green"></span> Kamu
+          <span class="lg blue"></span> Trail
         </div>
         <div id="progress" hidden></div>
       </div>
