@@ -197,7 +197,14 @@ export function autoWaypoints(track) {
     });
   }
   const last = track[track.length - 1];
-  if (last !== first) out.push({ lat: last.lat, lng: last.lng, name: "Finish" });
+  if (last !== first) {
+    // jika titik terakhir adalah puncak, namai Puncak bukan Finish
+    if (last === peak) {
+      out[out.length - 1] = { lat: last.lat, lng: last.lng, name: "Puncak (" + Math.round(last.alt) + " m)" };
+    } else {
+      out.push({ lat: last.lat, lng: last.lng, name: "Finish" });
+    }
+  }
   return out;
 }
 
