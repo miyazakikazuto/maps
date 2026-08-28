@@ -534,8 +534,8 @@ async function downloadArea(bounds, z0, z1) {
   const b = bounds || map.getBounds();
   let zz0, zz1;
   if (z0 != null && z1 != null) {
-    zz0 = Math.max(10, Math.min(16, z0));
-    zz1 = Math.max(10, Math.min(16, z1));
+    zz0 = Math.max(10, Math.min(17, z0));
+    zz1 = Math.max(10, Math.min(17, z1));
   } else {
     const z = Math.min(16, Math.max(10, Math.round(map.getZoom())));
     zz0 = zz1 = z; // 1 level aja, hemat
@@ -578,7 +578,7 @@ async function downloadArea(bounds, z0, z1) {
         try { await fetch(req, { mode: "no-cors" }); } catch (e) {}
         done++;
         if (done % 25 === 0) {
-          el("progress").textContent = `Download peta: ${done}/${total} tile…`;
+          el("progress").textContent = `Download z${z}: ${done}/${total} tile…`;
           await new Promise((res) => setTimeout(res, 50));
         }
       }
