@@ -552,11 +552,11 @@ async function downloadArea(bounds, z0, z1) {
     const r = rng[z];
     total += (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
   }
-  const MAX_TILES = 4000; // batas total (crop mode boleh lebih dari 600)
+  const MAX_TILES = 12000; // z12-17 luas bisa besar; warning kalau lewat
   if (total > MAX_TILES) {
     alert(
       "Area terlalu besar (" + total + " tile untuk zoom " + zz0 + "-" + zz1 +
-      "). Perkecil area/zoom (maks " + MAX_TILES + ")."
+      "). Perkecil crop (tarik sudut kotak lebih kecil). Maks " + MAX_TILES + "."
     );
     return;
   }
@@ -640,9 +640,8 @@ el("btnDownload").addEventListener("click", () => {
     startCrop(); // klik pertama: pilih area
     return;
   }
-  const bounds = cropRect.getBounds();
-  const z = Math.round(map.getZoom());
-  downloadArea(bounds, z, Math.min(16, z + 2)); // crop + 3 level zoom (hemat dari skip-cache)
+  // download zoom 12-17 (full detail), hanya dalam area crop
+  downloadArea(cropRect.getBounds(), 12, 17);
   map.removeLayer(cropRect);
   cropRect = null;
 });
