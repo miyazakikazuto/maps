@@ -77,7 +77,7 @@ let heading = 0; // arah hadap HP (derajat, 0 = utara)
 let trackLine = L.polyline([], { color: "#22c55e", weight: 4 }).addTo(map);
 // Trail rencana = group banyak polyline (1 per segmen, warna beda)
 const TRAIL_COLORS = ["#3b82f6","#ef4444","#f59e0b","#10b981","#a855f7","#ec4899","#14b8a6","#eab308","#8b5cf6","#06b6d4","#f97316","#84cc16"];
-let trailGroup = L.layerGroup().addTo(map);
+let trailGroup = L.featureGroup().addTo(map);
 let currentSegments = []; // nested [[ [lat,lng],... ], ...] buat save/restore
 function clearTrailLines() {
   trailGroup.clearLayers();
