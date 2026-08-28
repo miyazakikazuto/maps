@@ -566,6 +566,9 @@ async function downloadArea(bounds, z0, z1) {
     return;
   }
   const cache = await caches.open("trail-gps-v3");
+  // Wake lock biar HP gak sleep saat download (selain itu loop berhenti)
+  let wakeLock = null;
+  try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
   el("progress").hidden = false;
   let done = 0, skipped = 0;
   for (let z = zz0; z <= zz1; z++) {
@@ -590,6 +593,7 @@ async function downloadArea(bounds, z0, z1) {
   const dlMb = (dl * 15 / 1024).toFixed(1);
   el("progress").textContent =
     `Selesai: ${dl} tile baru (~${dlMb} MB) + ${skipped} sudah ada. Total ${total} (zoom ${zz0}-${zz1}).`;
+  if (wakeLock) { try { await wakeLock.release(); } catch (e) {} }
 }
 
 // ---- Crop mode: pilih area dengan kotak, lalu download multi-zoom ----
