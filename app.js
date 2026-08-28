@@ -41,6 +41,7 @@ const baseTopo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
   subdomains: "abc",
 });
 let currentBase = localStorage.getItem("baseLayer") === "topo" ? baseTopo : baseOSM;
+let currentTileHost = currentBase === baseTopo ? "tile.opentopomap.org" : "tile.openstreetmap.org";
 currentBase.addTo(map);
 
 function toggleBaseLayer() {
@@ -52,6 +53,7 @@ function toggleBaseLayer() {
   trailGroup.bringToFront();
   meMarker && meMarker.bringToFront();
   localStorage.setItem("baseLayer", currentBase === baseTopo ? "topo" : "osm");
+  currentTileHost = currentBase === baseTopo ? "tile.opentopomap.org" : "tile.openstreetmap.org";
   el("statusText").textContent =
     "Peta: " + (currentBase === baseTopo ? "Topo (relief)" : "OSM");
 }
@@ -96,6 +98,7 @@ function allTrailLatLngs() {
 }
 let meMarker = null; // dot biru "you are here"
 let meCircle = null; // lingkaran akurasi
+let marker = null; // dot hijau kecil di ujung track rekam (jika dibutuhkan)
 let lastMe = null; // simpan posisi GPS terakhir buat re-posisi setelah rotasi
 const el = (id) => document.getElementById(id);
 
@@ -228,7 +231,7 @@ function loadTrailSaved() {
     segments.forEach((seg, i) => addTrailSegment(seg, i));
     const flatPts = segments.flat().map((p) => ({ lat: p[0], lng: p[1] }));
     const savedWps = Array.isArray(data) ? [] : data.waypoints || [];
-    // jika GPX asli tak punya wpt, regenerate auto-waypoint dari track
+    // waypointData sudah gabungan (file wpt + auto) saat disimpan -> pakai langsung
     const wps = savedWps.length ? savedWps : autoWaypoints(flatPts);
     drawWaypoints(wps);
     return true;
@@ -552,7 +555,7 @@ async function downloadArea() {
     const r = range[z];
     for (let x = r.xMin; x <= r.xMax; x++) {
       for (let y = r.yMin; y <= r.yMax; y++) {
-        const url = `https://a.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+        const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
         try {
           await fetch(url, { mode: "no-cors" }); // SW akan cache-nya
         } catch (e) {}
