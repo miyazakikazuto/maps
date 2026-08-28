@@ -519,51 +519,82 @@ function exportGPX() {
 }
 
 // ---- Download area (pre-cache tiles) ----
-async function downloadArea() {
-  const b = map.getBounds();
-  // HANYA 1 level zoom (zoom saat ini) — jangan -1/+1 (boros 3x lipat)
-  const z = Math.min(16, Math.max(10, Math.round(map.getZoom())));
-  const range = tileRangeForBounds(
-    { west: b.getWest(), east: b.getEast(), north: b.getNorth(), south: b.getSouth() },
-    z, z
-  );
-  const r = range[z];
-  const total = (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
-  const MAX_TILES = 600; // ~1 layar di z14, cukup buat offline tanpa boros
+// bounds optional: kalau ada, download hanya dalam kotak itu (crop mode).
+// z0/z1 optional: range zoom (default cuma 1 level = zoom saat ini, hemat).
+async function downloadArea(bounds, z0, z1) {
+  const b = bounds || map.getBounds();
+  let zz0, zz1;
+  if (z0 != null && z1 != null) {
+    zz0 = Math.max(10, Math.min(16, z0));
+    zz1 = Math.max(10, Math.min(16, z1));
+  } else {
+    const z = Math.min(16, Math.max(10, Math.round(map.getZoom())));
+    zz0 = zz1 = z; // 1 level aja, hemat
+  }
+  // hitung total dulu (semua level) untuk batas + estimasi
+  let total = 0;
+  const ranges = {};
+  for (let z = zz0; z <= zz1; z++) {
+    const rng = tileRangeForBounds(
+      { west: b.getWest(), east: b.getEast(), north: b.getNorth(), south: b.getSouth() },
+      z, z
+    );
+    ranges[z] = rng[z];
+    const r = rng[z];
+    total += (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
+  }
+  const MAX_TILES = 4000; // batas total (crop mode boleh lebih dari 600)
   if (total > MAX_TILES) {
     alert(
-      "Area terlalu besar (" + total + " tile di zoom " + z +
-      "). Perkecil zoom dulu (maks " + MAX_TILES + ")."
+      "Area terlalu besar (" + total + " tile untuk zoom " + zz0 + "-" + zz1 +
+      "). Perkecil area/zoom (maks " + MAX_TILES + ")."
     );
     return;
   }
   const mb = (total * 15 / 1024).toFixed(1);
-  if (!confirm(`Download ${total} tile (~${mb} MB) di zoom ${z} untuk offline?\nTile yang sudah di-cache akan dilewati.`)) {
+  const scope = bounds ? "area terpilih" : "layar saat ini";
+  if (!confirm(`Download ${total} tile (~${mb} MB) zoom ${zz0}-${zz1} untuk ${scope}?\nTile yang sudah di-cache dilewati.`)) {
     return;
   }
-  // cek cache SW dulu -> skip yang sudah ada (hindari download ulang)
   const cache = await caches.open("trail-gps-v3");
   el("progress").hidden = false;
   let done = 0, skipped = 0;
-  for (let x = r.xMin; x <= r.xMax; x++) {
-    for (let y = r.yMin; y <= r.yMax; y++) {
-      const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
-      const req = new Request(url);
-      if (await cache.match(req)) { skipped++; done++; continue; }
-      try {
-        await fetch(req, { mode: "no-cors" }); // SW cache
-      } catch (e) {}
-      done++;
-      if (done % 25 === 0) {
-        el("progress").textContent = `Download peta: ${done}/${total} tile…`;
-        await new Promise((res) => setTimeout(res, 50)); // etika server
+  for (let z = zz0; z <= zz1; z++) {
+    const r = ranges[z];
+    for (let x = r.xMin; x <= r.xMax; x++) {
+      for (let y = r.yMin; y <= r.yMax; y++) {
+        const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
+        const req = new Request(url);
+        if (await cache.match(req)) { skipped++; done++; continue; }
+        try { await fetch(req, { mode: "no-cors" }); } catch (e) {}
+        done++;
+        if (done % 25 === 0) {
+          el("progress").textContent = `Download peta: ${done}/${total} tile…`;
+          await new Promise((res) => setTimeout(res, 50));
+        }
       }
     }
   }
   const dl = total - skipped;
   const dlMb = (dl * 15 / 1024).toFixed(1);
   el("progress").textContent =
-    `Selesai: ${dl} tile baru (~${dlMb} MB) + ${skipped} sudah ada. Total ${total} (zoom ${z}).`;
+    `Selesai: ${dl} tile baru (~${dlMb} MB) + ${skipped} sudah ada. Total ${total} (zoom ${zz0}-${zz1}).`;
+}
+
+// ---- Crop mode: pilih area dengan kotak, lalu download multi-zoom ----
+let cropRect = null;
+function startCrop() {
+  if (cropRect) { map.removeLayer(cropRect); cropRect = null; }
+  const b = map.getBounds();
+  const c = b.getCenter();
+  const dLat = (b.getNorth() - b.getSouth()) / 4;
+  const dLng = (b.getEast() - b.getWest()) / 4;
+  cropRect = L.rectangle(
+    [[c.lat - dLat, c.lng - dLng], [c.lat + dLat, c.lng + dLng]],
+    { color: "#3b82f6", weight: 2, dashArray: "4,4" }
+  ).addTo(map);
+  cropRect.editing.enable(); // drag sudut untuk resize
+  el("statusText").textContent = "Tarik sudut kotak untuk crop area, lalu klik ⬇ lagi";
 }
 
 function clearTrack() {
@@ -595,7 +626,17 @@ el("btnLoad").addEventListener("click", () => el("fileInput").click());
 el("fileInput").addEventListener("change", (e) => loadTrail(e.target.files[0]));
 el("btnExport").addEventListener("click", exportGeoJSON);
 el("btnExportGpx").addEventListener("click", exportGPX);
-el("btnDownload").addEventListener("click", downloadArea);
+el("btnDownload").addEventListener("click", () => {
+  if (!cropRect) {
+    startCrop(); // klik pertama: pilih area
+    return;
+  }
+  const bounds = cropRect.getBounds();
+  const z = Math.round(map.getZoom());
+  downloadArea(bounds, z, Math.min(16, z + 2)); // crop + 3 level zoom (hemat dari skip-cache)
+  map.removeLayer(cropRect);
+  cropRect = null;
+});
 el("btnClear").addEventListener("click", clearTrack);
 el("btnHideTrack").addEventListener("click", () => {
   if (map.hasLayer(trailGroup)) map.removeLayer(trailGroup);
