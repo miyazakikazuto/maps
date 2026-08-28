@@ -89,6 +89,15 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .dot.online { background: #22c55e; }
 .dot.offline { background: #ef4444; }
+#zoomInfo {
+  margin-left: auto;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Panel slide-up overlay di bawah peta, hidden by default (display:none biar tak makan layout) */
 #panel {

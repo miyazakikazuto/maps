@@ -28,6 +28,15 @@ const map = L.map("map", {
 }).setView([-6.92, 109.99], 12); // default: Kendal (jika kosong)
 L.control.zoom({ position: "bottomleft" }).addTo(map);
 
+// Info zoom (biar tau level sebelum download)
+function updateZoomInfo() {
+  const z = map.getZoom();
+  const elz = document.getElementById("zoomInfo");
+  if (elz) elz.textContent = "Z" + Math.round(z);
+}
+map.on("zoomend", updateZoomInfo);
+updateZoomInfo();
+
 // Dua base layer: OSM (default) + OpenTopoMap (ada hillshade + kontur = 3D-ish)
 const baseOSM = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
