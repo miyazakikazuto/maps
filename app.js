@@ -569,10 +569,12 @@ async function downloadArea(bounds, z0, z1) {
   el("progress").hidden = false;
   let done = 0, skipped = 0;
   for (let z = zz0; z <= zz1; z++) {
+    // Topo hanya lengkap sampai ~z13; detail z>13 pakai OSM (lengkap z0-19)
+    const host = z > 13 ? "tile.openstreetmap.org" : currentTileHost;
     const r = ranges[z];
     for (let x = r.xMin; x <= r.xMax; x++) {
       for (let y = r.yMin; y <= r.yMax; y++) {
-        const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
+        const url = `https://${host}/${z}/${x}/${y}.png`;
         const req = new Request(url);
         if (await cache.match(req)) { skipped++; done++; continue; }
         try { await fetch(req, { mode: "no-cors" }); } catch (e) {}

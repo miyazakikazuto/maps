@@ -54,9 +54,27 @@ self.addEventListener("fetch", (event) => {
           const res = await fetch(event.request);
           if (res && (res.ok || res.type === "opaque")) {
             cache.put(event.request, res.clone());
+            return res;
+          }
+          // Topo gagal (404 di zoom tinggi) -> fallback ke OSM sibling
+          if (url.hostname.endsWith("tile.opentopomap.org")) {
+            const osmUrl = event.request.url
+              .replace("tile.opentopomap.org", "tile.openstreetmap.org");
+            const osmReq = new Request(osmUrl);
+            const osmCached = await cache.match(osmReq);
+            if (osmCached) return osmCached;
+            const osmRes = await fetch(osmReq, { mode: "no-cors" });
+            if (osmRes) { cache.put(osmReq, osmRes.clone()); return osmRes; }
           }
           return res;
         } catch (err) {
+          // offline: coba OSM sibling kalau Topo
+          if (url.hostname.endsWith("tile.opentopomap.org")) {
+            const osmUrl = event.request.url
+              .replace("tile.opentopomap.org", "tile.openstreetmap.org");
+            const osmCached = await cache.match(new Request(osmUrl));
+            if (osmCached) return osmCached;
+          }
           return cached || Response.error();
         }
       })
