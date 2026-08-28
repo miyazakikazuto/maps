@@ -17,7 +17,6 @@ import {
 const STORE_KEY = "trail-track-v1";
 const TRAIL_KEY = "trail-plan-v1"; // jalur rencana (dari file) persist
 const MIN_MOVE_M = 2; // abaikan titik yg terlalu dekat (kurangi noise)
-const MAX_TILES = 4000; // batas download area (etika OSM)
 
 const map = L.map("map", {
   zoomControl: false, // kita taruh manual di bottomright biar tak tabrakan dgn ☰/kompas
@@ -522,8 +521,8 @@ function exportGPX() {
 // ---- Download area (pre-cache tiles) ----
 async function downloadArea() {
   const b = map.getBounds();
-  const z0 = Math.max(10, map.getZoom() - 1);
-  const z1 = Math.min(16, map.getZoom() + 1);
+  // HANYA 1 level zoom (zoom saat ini) — jangan -1/+1 (boros 3x lipat)
+  const z = Math.min(16, Math.max(10, Math.round(map.getZoom())));
   const range = tileRangeForBounds(
     {
       west: b.getWest(),
@@ -531,43 +530,36 @@ async function downloadArea() {
       north: b.getNorth(),
       south: b.getSouth(),
     },
-    z0,
-    z1
+    z,
+    z
   );
-  let total = 0;
-  for (let z = z0; z <= z1; z++) {
-    const r = range[z];
-    total += (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
-  }
+  const r = range[z];
+  const total = (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
+  const MAX_TILES = 600; // ~1 layar di z14, cukup buat offline tanpa boros
   if (total > MAX_TILES) {
     alert(
-      "Area terlalu besar (" +
-        total +
-        " tile). Perkecil zoom / area dulu (maks " +
-        MAX_TILES +
-        ")."
+      "Area terlalu besar (" + total + " tile di zoom " + z +
+      "). Perkecil zoom dulu (maks " + MAX_TILES + ")."
     );
     return;
   }
   el("progress").hidden = false;
   let done = 0;
-  for (let z = z0; z <= z1; z++) {
-    const r = range[z];
-    for (let x = r.xMin; x <= r.xMax; x++) {
-      for (let y = r.yMin; y <= r.yMax; y++) {
-        const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
-        try {
-          await fetch(url, { mode: "no-cors" }); // SW akan cache-nya
-        } catch (e) {}
-        done++;
-        if (done % 25 === 0) {
-          el("progress").textContent = `Download peta: ${done}/${total} tile…`;
-          await new Promise((res) => setTimeout(res, 30)); // etika OSM
-        }
+  for (let x = r.xMin; x <= r.xMax; x++) {
+    for (let y = r.yMin; y <= r.yMax; y++) {
+      const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
+      try {
+        await fetch(url, { mode: "no-cors" }); // SW cache
+      } catch (e) {}
+      done++;
+      if (done % 25 === 0) {
+        el("progress").textContent = `Download peta: ${done}/${total} tile…`;
+        await new Promise((res) => setTimeout(res, 50)); // etika server
       }
     }
   }
-  el("progress").textContent = `Selesai: ${total} tile tersimpan di cache (bisa dipakai offline).`;
+  const mb = (total * 15 / 1024).toFixed(1); // ~15KB/tile rata2
+  el("progress").textContent = `Selesai: ${total} tile (~${mb} MB) tersimpan di cache (zoom ${z}).`;
 }
 
 function clearTrack() {
