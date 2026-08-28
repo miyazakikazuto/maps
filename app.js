@@ -524,14 +524,8 @@ async function downloadArea() {
   // HANYA 1 level zoom (zoom saat ini) — jangan -1/+1 (boros 3x lipat)
   const z = Math.min(16, Math.max(10, Math.round(map.getZoom())));
   const range = tileRangeForBounds(
-    {
-      west: b.getWest(),
-      east: b.getEast(),
-      north: b.getNorth(),
-      south: b.getSouth(),
-    },
-    z,
-    z
+    { west: b.getWest(), east: b.getEast(), north: b.getNorth(), south: b.getSouth() },
+    z, z
   );
   const r = range[z];
   const total = (r.xMax - r.xMin + 1) * (r.yMax - r.yMin + 1);
@@ -543,13 +537,21 @@ async function downloadArea() {
     );
     return;
   }
+  const mb = (total * 15 / 1024).toFixed(1);
+  if (!confirm(`Download ${total} tile (~${mb} MB) di zoom ${z} untuk offline?\nTile yang sudah di-cache akan dilewati.`)) {
+    return;
+  }
+  // cek cache SW dulu -> skip yang sudah ada (hindari download ulang)
+  const cache = await caches.open("trail-gps-v3");
   el("progress").hidden = false;
-  let done = 0;
+  let done = 0, skipped = 0;
   for (let x = r.xMin; x <= r.xMax; x++) {
     for (let y = r.yMin; y <= r.yMax; y++) {
       const url = `https://${currentTileHost}/${z}/${x}/${y}.png`;
+      const req = new Request(url);
+      if (await cache.match(req)) { skipped++; done++; continue; }
       try {
-        await fetch(url, { mode: "no-cors" }); // SW cache
+        await fetch(req, { mode: "no-cors" }); // SW cache
       } catch (e) {}
       done++;
       if (done % 25 === 0) {
@@ -558,8 +560,10 @@ async function downloadArea() {
       }
     }
   }
-  const mb = (total * 15 / 1024).toFixed(1); // ~15KB/tile rata2
-  el("progress").textContent = `Selesai: ${total} tile (~${mb} MB) tersimpan di cache (zoom ${z}).`;
+  const dl = total - skipped;
+  const dlMb = (dl * 15 / 1024).toFixed(1);
+  el("progress").textContent =
+    `Selesai: ${dl} tile baru (~${dlMb} MB) + ${skipped} sudah ada. Total ${total} (zoom ${z}).`;
 }
 
 function clearTrack() {
